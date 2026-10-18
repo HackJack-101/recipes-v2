@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, exists, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, exists, ilike, inArray, or, sql } from "drizzle-orm";
 import { db, type Tx } from "@/db";
 import { ingredients, photos, recipes, recipeTags, steps, tags } from "@/db/schema";
 import type { RecipeInput } from "./recipe-input";
@@ -103,6 +103,18 @@ export async function pruneUnusedTags(tx: Tx | typeof db, kitchenId: string) {
 export async function kitchenTags(kitchenId: string) {
   const rows = await db.select({ name: tags.name }).from(tags).where(eq(tags.kitchenId, kitchenId)).orderBy(asc(tags.name));
   return rows.map((r) => r.name);
+}
+
+/** Tags with how many recipes use them, most used first. */
+export async function kitchenTagCounts(kitchenId: string) {
+  const uses = count(recipeTags.recipeId);
+  return db
+    .select({ name: tags.name, count: uses })
+    .from(tags)
+    .innerJoin(recipeTags, eq(recipeTags.tagId, tags.id))
+    .where(eq(tags.kitchenId, kitchenId))
+    .groupBy(tags.id)
+    .orderBy(desc(uses), asc(tags.name));
 }
 
 export type RecipeCard = {

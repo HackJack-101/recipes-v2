@@ -11,7 +11,7 @@ describe.skipIf(!url)("recipes (database)", async () => {
   const { db } = await import("@/db");
   const { setupDatabase } = await import("@/db/setup");
   const { kitchens, tags, users } = await import("@/db/schema");
-  const { kitchenTags, loadRecipe, saveRecipe, searchRecipes, toRecipeInput } = await import("./recipes");
+  const { kitchenTagCounts, kitchenTags, loadRecipe, saveRecipe, searchRecipes, toRecipeInput } = await import("./recipes");
   const { eq } = await import("drizzle-orm");
 
   let kitchenId: string;
@@ -72,5 +72,16 @@ describe.skipIf(!url)("recipes (database)", async () => {
     expect(await kitchenTags(kitchenId)).not.toContain("only-here");
     const all = await db.select().from(tags).where(eq(tags.kitchenId, kitchenId));
     expect(all.map((t) => t.name).sort()).toEqual(["dessert", "french", "savory", "vegetarian"]);
+  });
+
+  it("counts tag uses, most used first, then by name", async () => {
+    await saveRecipe(kitchenId, { ...crepes, title: "Clafoutis", tags: ["dessert", "savory"] }, userId);
+    await saveRecipe(kitchenId, { ...crepes, title: "Far breton", tags: ["dessert"] }, userId);
+    expect(await kitchenTagCounts(kitchenId)).toEqual([
+      { name: "dessert", count: 3 },
+      { name: "savory", count: 2 },
+      { name: "french", count: 1 },
+      { name: "vegetarian", count: 1 },
+    ]);
   });
 });

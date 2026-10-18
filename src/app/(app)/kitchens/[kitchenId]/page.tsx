@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { requireKitchen } from "@/lib/access";
 import { aiImportEnabled } from "@/lib/ai-import";
 import { canManageKitchen } from "@/lib/permissions";
-import { kitchenTags, searchRecipes } from "@/lib/recipes";
+import { kitchenTagCounts, searchRecipes } from "@/lib/recipes";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RecipeCard } from "@/components/recipe/recipe-card";
@@ -26,7 +26,7 @@ export default async function KitchenPage({ params, searchParams }: Props) {
   const { kitchen, actor } = await requireKitchen(kitchenId);
   const [t, tags, cards] = await Promise.all([
     getTranslations("kitchen"),
-    kitchenTags(kitchen.id),
+    kitchenTagCounts(kitchen.id),
     searchRecipes(kitchen.id, q, tag),
   ]);
   const filtering = Boolean(q || tag);

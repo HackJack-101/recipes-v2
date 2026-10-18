@@ -7,7 +7,8 @@ import { useEffect, useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
-export function RecipeFilters({ tags }: { tags: string[] }) {
+/** Tags come most used first; the count shows only for tags on several recipes. */
+export function RecipeFilters({ tags }: { tags: { name: string; count: number }[] }) {
   const t = useTranslations("kitchen");
   const router = useRouter();
   const pathname = usePathname();
@@ -57,19 +58,29 @@ export function RecipeFilters({ tags }: { tags: string[] }) {
               {t("allTags")}
             </button>
           )}
-          {tags.map((tag) => (
+          {tags.map(({ name, count }) => (
             <button
-              key={tag}
-              onClick={() => update({ tag: tag === activeTag ? null : tag })}
-              aria-pressed={tag === activeTag}
+              key={name}
+              onClick={() => update({ tag: name === activeTag ? null : name })}
+              aria-pressed={name === activeTag}
               className={cn(
-                "h-9 shrink-0 rounded-full border px-3.5 text-sm transition",
-                tag === activeTag
+                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm transition",
+                name === activeTag
                   ? "border-primary bg-primary text-primary-foreground"
                   : "bg-card hover:bg-muted",
               )}
             >
-              {tag}
+              {name}
+              {count > 1 && (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 text-xs font-medium tabular-nums",
+                    name === activeTag ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {count}
+                </span>
+              )}
             </button>
           ))}
         </div>
