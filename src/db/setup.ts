@@ -5,9 +5,24 @@ import { hashPassword } from "@/lib/password";
 import { db } from "./index";
 import { users } from "./schema";
 
+// Arbitrary key for the Postgres advisory lock that serializes setup.
+const SETUP_LOCK = 7_265_281;
+
 /** Applies pending migrations and creates the first super admin. Runs once at server start. */
 export async function setupDatabase() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
+  // Several processes may start at once (replicas, parallel test files): set up one at a time.
+  const lock = await db.$client.reserve();
+  try {
+    await lock`select pg_advisory_lock(${SETUP_LOCK})`;
+    await migrateAndSeed();
+  } finally {
+    await lock`select pg_advisory_unlock(${SETUP_LOCK})`;
+    lock.release();
+  }
+}
+
+async function migrateAndSeed() {
   await migrate(db, { migrationsFolder: path.join(/* turbopackIgnore: true */ process.cwd(), "drizzle") });
 
   const [{ value }] = await db.select({ value: count() }).from(users);

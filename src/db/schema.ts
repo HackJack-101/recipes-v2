@@ -58,6 +58,24 @@ export const kitchenMembers = pgTable(
   (t) => [primaryKey({ columns: [t.kitchenId, t.userId] })],
 );
 
+export const kitchenInvites = pgTable(
+  "kitchen_invites",
+  {
+    id: id(),
+    // sha256 of the link token, never the token itself
+    tokenHash: text("token_hash").notNull().unique(),
+    kitchenId: uuid("kitchen_id")
+      .notNull()
+      .references(() => kitchens.id, { onDelete: "cascade" }),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    usedBy: uuid("used_by").references(() => users.id, { onDelete: "set null" }),
+  },
+  (t) => [index("kitchen_invites_kitchen_idx").on(t.kitchenId)],
+);
+
 export const recipes = pgTable(
   "recipes",
   {

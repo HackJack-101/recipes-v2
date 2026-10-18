@@ -23,6 +23,8 @@ test("sign in, create a kitchen and a recipe, scale and share it", async ({ page
   await page.getByRole("button", { name: "Create kitchen" }).click();
   await expect(page.getByRole("link", { name: `Kitchen ${suffix}` })).toBeVisible();
   await page.getByRole("link", { name: `Kitchen ${suffix}` }).click();
+  await expect(page).toHaveURL(/\/kitchens\/[0-9a-f-]+$/);
+  const kitchenUrl = page.url();
 
   // New recipe.
   await page.getByRole("link", { name: "New recipe" }).click();
@@ -56,4 +58,28 @@ test("sign in, create a kitchen and a recipe, scale and share it", async ({ page
   expect(res?.headers()["x-robots-tag"]).toContain("noindex");
   await expect(guestPage.getByRole("heading", { name: `Pancakes ${suffix}` })).toBeVisible();
   await guest.close();
+
+  // Invite link: a newcomer creates an account and joins; the link then stops working.
+  await page.goto(kitchenUrl + "/settings");
+  await page.getByRole("button", { name: "Create an invite link" }).click();
+  const inviteUrl = new URL(await page.getByRole("textbox", { name: "Invite link" }).inputValue());
+  const invitePath = inviteUrl.pathname;
+  const newcomer = await browser.newContext();
+  const newcomerPage = await newcomer.newPage();
+  const inviteRes = await newcomerPage.goto(invitePath);
+  expect(inviteRes?.headers()["x-robots-tag"]).toContain("noindex");
+  await expect(newcomerPage.getByRole("heading", { name: `Join “Kitchen ${suffix}”` })).toBeVisible();
+  await newcomerPage.getByLabel("Your name").fill("Newcomer");
+  await newcomerPage.getByLabel("Email").fill(`newcomer-${suffix}@test.local`);
+  await newcomerPage.getByLabel("Password").fill("newcomer-pass");
+  await newcomerPage.getByRole("button", { name: "Create my account and join" }).click();
+  await expect(newcomerPage).toHaveURL(kitchenUrl);
+  await expect(newcomerPage.getByText(`Pancakes ${suffix}`)).toBeVisible();
+  await newcomer.close();
+
+  const late = await browser.newContext();
+  const latePage = await late.newPage();
+  await latePage.goto(invitePath);
+  await expect(latePage.getByRole("heading", { name: "Link no longer valid" })).toBeVisible();
+  await late.close();
 });

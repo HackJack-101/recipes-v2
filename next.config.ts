@@ -15,6 +15,14 @@ const nextConfig: NextConfig = {
         source: "/share/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
+      {
+        // Invite tokens are in the URL: keep them out of search engines and Referer headers.
+        source: "/invite/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+        ],
+      },
     ];
   },
 };

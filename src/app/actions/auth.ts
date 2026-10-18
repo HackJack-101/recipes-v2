@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { createSession, destroySession, getCurrentUser } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { safeNext } from "@/lib/utils";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
 
 export type FormState = { error?: string; ok?: boolean } | undefined;
@@ -22,7 +23,7 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
   if (!user || !ok) return { error: t("invalidCredentials") };
   await createSession(user.id);
   if (user.locale) await setLocaleCookie(user.locale);
-  redirect("/");
+  redirect(safeNext(formData.get("next")));
 }
 
 export async function logout() {
