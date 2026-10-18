@@ -25,10 +25,10 @@ export default async function RecipePage({ params }: Props) {
       <div className="no-print mb-4 flex items-center justify-between gap-2">
         <Link
           href={`/kitchens/${recipe.kitchenId}`}
-          className="-ml-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm text-muted-foreground hover:text-foreground"
+          className="-ml-2 inline-flex min-h-10 min-w-0 items-center gap-1.5 rounded-lg px-2 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="size-4" />
-          <span className="max-w-[45vw] truncate">{recipe.kitchen.name}</span>
+          <ArrowLeft className="size-4 shrink-0" />
+          <span className="truncate">{recipe.kitchen.name}</span>
         </Link>
         <RecipeActions recipeId={recipe.id} shareUrl={recipe.shareToken ? `${appUrl}/share/${recipe.shareToken}` : null} appUrl={appUrl} />
       </div>
