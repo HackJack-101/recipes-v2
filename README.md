@@ -32,6 +32,29 @@ Database migrations run automatically when the container starts. Data lives in t
 
 Put the app behind a reverse proxy with HTTPS (Caddy, Traefik, nginx…) for anything beyond your local network.
 
+## Self-hosting with Portainer
+
+The same `docker-compose.yml` runs as a Portainer stack.
+
+1. In Portainer, open your environment, go to **Stacks** → **Add stack** and name it `recipes`.
+2. Choose a build method:
+   - **Repository** (recommended): repository URL `https://github.com/HackJack-101/recipes-v2`, reference `refs/heads/main`, compose path `docker-compose.yml`. Portainer can then redeploy when the file changes.
+   - **Web editor**: paste the content of [`docker-compose.yml`](docker-compose.yml) and delete the `build: .` line (there is no source code to build from).
+3. Under **Environment variables**, switch to **Advanced mode** and paste your settings, at least:
+   ```env
+   POSTGRES_PASSWORD=a-long-random-password
+   ADMIN_EMAIL=you@example.com
+   ADMIN_PASSWORD=another-long-password
+   APP_URL=https://recipes.example.com
+   ANTHROPIC_API_KEY=
+   ```
+   Any variable from the table above can be added here. `POSTGRES_PASSWORD` is required; the deploy fails without it.
+4. Click **Deploy the stack**, wait for the `db` service to become healthy, then open `APP_URL` and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+
+To update, open the stack and click **Pull and redeploy** (Repository) or **Update the stack** with **Re-pull image and redeploy** enabled (Web editor). Pin a release instead of `latest` by setting `RECIPES_VERSION` (for example `1.2.0`). The `recipes_pgdata` and `recipes_uploads` volumes are kept across updates; back them up from **Volumes**.
+
+If Portainer's stack sits on a shared network with a reverse proxy (Traefik, Nginx Proxy Manager…), point the proxy at the `app` service on port `3000`, and set `APP_URL` to the public HTTPS address so share links and secure cookies work.
+
 ## Development
 
 Requirements: Node 24 and pnpm (`corepack enable`), plus a PostgreSQL database.
