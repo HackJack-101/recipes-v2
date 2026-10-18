@@ -1,0 +1,59 @@
+import { expect, test } from "@playwright/test";
+
+// Needs a running database seeded with the super admin from ADMIN_EMAIL / ADMIN_PASSWORD.
+const email = process.env.ADMIN_EMAIL ?? "admin@example.com";
+const password = process.env.ADMIN_PASSWORD ?? "admin1234";
+
+test.use({ locale: "en-US" });
+
+test("sign in, create a kitchen and a recipe, scale and share it", async ({ page, browser }, info) => {
+  const suffix = `${info.project.name}-${Date.now()}`;
+
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByRole("heading", { name: /Hello/ })).toBeVisible();
+
+  // Super admin creates a kitchen they own.
+  await page.goto("/admin");
+  await page.getByLabel("Name", { exact: true }).last().fill(`Kitchen ${suffix}`);
+  await page.getByLabel("Owner").selectOption({ label: `Admin (${email})` });
+  await page.getByRole("button", { name: "Create kitchen" }).click();
+  await expect(page.getByRole("link", { name: `Kitchen ${suffix}` })).toBeVisible();
+  await page.getByRole("link", { name: `Kitchen ${suffix}` }).click();
+
+  // New recipe.
+  await page.getByRole("link", { name: "New recipe" }).click();
+  await page.getByLabel("Title").fill(`Pancakes ${suffix}`);
+  await page.getByLabel("Guests").fill("2");
+  await page.getByLabel("Prep (min)").fill("10");
+  await page.locator("#tag-input").fill("breakfast");
+  await page.locator("#tag-input").press("Enter");
+  await page.getByRole("button", { name: "Add ingredient" }).click();
+  await page.getByLabel("Qty").fill("1");
+  await page.getByLabel("Unit").fill("cup");
+  await page.getByLabel("Ingredient", { exact: true }).fill("flour");
+  await page.getByRole("button", { name: "Add step" }).click();
+  await page.getByLabel("Step 1").fill("Mix and cook.");
+  await page.getByRole("button", { name: "Save recipe" }).click();
+
+  await expect(page.getByRole("heading", { name: `Pancakes ${suffix}` })).toBeVisible();
+  await expect(page.getByText("1 cup")).toBeVisible();
+
+  // Guest scaler: 2 → 1 guest halves the flour.
+  await page.getByRole("button", { name: "Fewer guests" }).click();
+  await expect(page.getByText("½ cup")).toBeVisible();
+
+  // Public link works without an account.
+  await page.getByRole("button", { name: "Share" }).click();
+  await page.getByRole("button", { name: "Create a public link" }).click();
+  const shareUrl = new URL(await page.getByRole("dialog").getByRole("textbox").inputValue());
+  const guest = await browser.newContext();
+  const guestPage = await guest.newPage();
+  const res = await guestPage.goto(new URL(shareUrl.pathname, page.url()).toString());
+  expect(res?.headers()["x-robots-tag"]).toContain("noindex");
+  await expect(guestPage.getByRole("heading", { name: `Pancakes ${suffix}` })).toBeVisible();
+  await guest.close();
+});
