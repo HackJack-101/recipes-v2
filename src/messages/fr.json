@@ -90,7 +90,10 @@
     "createLink": "Créer un lien public",
     "deleteTitle": "Supprimer cette recette ?",
     "deleteDescription": "La recette et ses photos seront supprimées pour toute la cuisine. Cette action est irréversible.",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "keepAwake": "Écran allumé",
+    "keepAwakeOn": "L’écran reste allumé tant que la recette est ouverte",
+    "keepAwakeError": "Cet appareil ne peut pas garder l’écran allumé."
   },
   "editor": {
     "newTitle": "Nouvelle recette",

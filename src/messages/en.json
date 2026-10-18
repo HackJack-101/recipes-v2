@@ -90,7 +90,10 @@
     "createLink": "Create a public link",
     "deleteTitle": "Delete this recipe?",
     "deleteDescription": "The recipe and its photos will be removed for everyone in the kitchen. This cannot be undone.",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "keepAwake": "Keep screen on",
+    "keepAwakeOn": "Screen stays on while this recipe is open",
+    "keepAwakeError": "This device could not keep the screen on."
   },
   "editor": {
     "newTitle": "New recipe",

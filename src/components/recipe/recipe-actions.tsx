@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/dropdown";
 import { Input } from "@/components/ui/input";
+import { WakeLockButton } from "./wake-lock-button";
 
 export function RecipeActions({ recipeId, shareUrl, appUrl }: { recipeId: string; shareUrl: string | null; appUrl: string }) {
   const t = useTranslations("recipe");
@@ -35,6 +36,7 @@ export function RecipeActions({ recipeId, shareUrl, appUrl }: { recipeId: string
 
   return (
     <div className="flex items-center gap-1.5">
+      <WakeLockButton />
       <Button variant="outline" size="sm" asChild>
         <Link href={`/recipes/${recipeId}/edit`}>
           <Pencil />

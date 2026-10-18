@@ -6,6 +6,7 @@ import { loadRecipe } from "@/lib/recipes";
 import { Logo } from "@/components/layout/logo";
 import { RecipeBody } from "@/components/recipe/recipe-body";
 import { RecipeHeader } from "@/components/recipe/recipe-header";
+import { WakeLockButton } from "@/components/recipe/wake-lock-button";
 
 type Props = { params: Promise<{ token: string }> };
 
@@ -31,7 +32,10 @@ export default async function SharedRecipePage({ params }: Props) {
       <header className="no-print border-b">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Logo name={t("app.name")} />
-          <span className="text-sm text-muted-foreground">{t("share.sharedRecipe")}</span>
+          <div className="flex items-center gap-3">
+            <span className="hidden text-sm text-muted-foreground sm:inline">{t("share.sharedRecipe")}</span>
+            <WakeLockButton />
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6 sm:pt-8">

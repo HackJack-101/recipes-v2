@@ -5,6 +5,8 @@ const url = process.env.TEST_DATABASE_URL;
 vi.mock("server-only", () => ({}));
 
 describe.skipIf(!url)("recipes (database)", async () => {
+  // Vitest still collects a skipped suite's body; don't import the db without a URL.
+  if (!url) return;
   process.env.DATABASE_URL = url;
   const { db } = await import("@/db");
   const { setupDatabase } = await import("@/db/setup");
