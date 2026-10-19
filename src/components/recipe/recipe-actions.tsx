@@ -42,9 +42,9 @@ export function RecipeActions({ recipeId, favorite, shareUrl, appUrl }: Props) {
       <FavoriteButton recipeId={recipeId} favorite={favorite} />
       <WakeLockButton />
       <Button variant="outline" size="sm" asChild>
-        <Link href={`/recipes/${recipeId}/edit`}>
+        <Link href={`/recipes/${recipeId}/edit`} aria-label={t("edit")}>
           <Pencil />
-          {t("edit")}
+          <span className="hidden sm:inline">{t("edit")}</span>
         </Link>
       </Button>
       <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} aria-label={t("share")}>

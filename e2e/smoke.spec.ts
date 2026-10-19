@@ -56,6 +56,12 @@ test("sign in, create a kitchen and a recipe, scale and share it", async ({ page
   await expect(page.getByRole("button", { name: "Favorite" })).toHaveAttribute("aria-pressed", "true");
   await page.goto(recipeUrl);
 
+  // A tag on the recipe lists the kitchen's recipes with that tag.
+  await page.getByRole("link", { name: "breakfast", exact: true }).click();
+  await expect(page).toHaveURL(/\/kitchens\/[0-9a-f-]+\?tag=breakfast$/);
+  await expect(page.getByText(`Pancakes ${suffix}`)).toBeVisible();
+  await page.goto(recipeUrl);
+
   // Picking a suggested tag while typing adds that tag, not the half-typed text.
   await page.goto(recipeUrl + "/edit");
   await page.getByRole("button", { name: "Remove tag breakfast" }).click();

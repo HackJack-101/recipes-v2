@@ -37,7 +37,7 @@ export default async function RecipePage({ params }: Props) {
           appUrl={appUrl}
         />
       </div>
-      <RecipeHeader recipe={recipe} />
+      <RecipeHeader recipe={recipe} linkTags />
       <RecipeBody
         servings={recipe.servings}
         ingredients={recipe.ingredients}
