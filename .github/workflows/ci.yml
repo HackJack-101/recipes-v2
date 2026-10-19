@@ -3,11 +3,13 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ["v*"]
-    # Docs-only changes don't need a test run or a new image (tags ignore path filters).
+    # Docs-only changes don't need a test run or a new image.
     paths-ignore: ["**.md"]
   pull_request:
     paths-ignore: ["**.md"]
+  # A published release builds its version (and `stable`), then deploys it.
+  release:
+    types: [published]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -72,6 +74,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-qemu-action@v4
@@ -90,6 +94,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=stable,enable=${{ github.event_name == 'release' && !github.event.release.prerelease }}
             type=sha,format=short
       - uses: docker/build-push-action@v7
         with:
@@ -101,3 +106,25 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Portainer
+    needs: docker
+    # Pre-releases get an image but aren't deployed.
+    if: github.event_name == 'release' && !github.event.release.prerelease
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - run: scripts/portainer-deploy.sh
+        env:
+          PORTAINER_URL: ${{ vars.PORTAINER_URL }}
+          PORTAINER_STACK: ${{ vars.PORTAINER_STACK }}
+          PORTAINER_TOKEN: ${{ secrets.PORTAINER_TOKEN }}
+          PORTAINER_BASIC_AUTH: ${{ secrets.PORTAINER_BASIC_AUTH }}
+          IMAGE: ${{ env.IMAGE }}
+          VERSION: ${{ needs.docker.outputs.version }}

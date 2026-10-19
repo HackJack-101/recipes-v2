@@ -51,7 +51,7 @@ The same `docker-compose.yml` runs as a Portainer stack.
    Any variable from the table above can be added here. `POSTGRES_PASSWORD` is required; the deploy fails without it.
 4. Click **Deploy the stack**, wait for the `db` service to become healthy, then open `APP_URL` and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
-To update, open the stack and click **Pull and redeploy** (Repository) or **Update the stack** with **Re-pull image and redeploy** enabled (Web editor). Pin a release instead of `latest` by setting `RECIPES_VERSION` (for example `1.2.0`). The `recipes_pgdata` and `recipes_uploads` volumes are kept across updates; back them up from **Volumes**.
+To update, open the stack and click **Pull and redeploy** (Repository) or **Update the stack** with **Re-pull image and redeploy** enabled (Web editor). Pin a release instead of `latest` by setting `RECIPES_VERSION` (for example `1.2.0`), or follow releases with `stable`. To redeploy automatically on each release, see [Deploying releases to Portainer](#deploying-releases-to-portainer). The `recipes_pgdata` and `recipes_uploads` volumes are kept across updates; back them up from **Volumes**.
 
 If Portainer's stack sits on a shared network with a reverse proxy (Traefik, Nginx Proxy Manager…), point the proxy at the `app` service on port `3000`, and set `APP_URL` to the public HTTPS address so share links and secure cookies work.
 
@@ -89,4 +89,29 @@ e2e/              Playwright tests
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs on every push and pull request: lint, typecheck, unit and database tests (against a PostgreSQL service), production build and Playwright tests. On `main` and on `v*` tags it then builds a multi-arch (amd64/arm64) image and pushes it to GHCR as `latest`, `sha-<commit>` and, for tags, the semver version.
+`.github/workflows/ci.yml` runs on every push and pull request: lint, typecheck, unit and database tests (against a PostgreSQL service), production build and Playwright tests. It then builds a multi-arch (amd64/arm64) image and pushes it to GHCR:
+
+| Trigger | Image tags |
+| --- | --- |
+| Push to `main` | `latest`, `sha-<commit>` |
+| Published GitHub release (tag `v1.2.0`) | `1.2.0`, `1.2`, `stable`, `sha-<commit>`, then deploys to Portainer |
+| Published pre-release (tag `v1.3.0-rc.1`) | `1.3.0-rc.1`, `sha-<commit>` (no `stable`, no deploy) |
+
+Release tags must be semver (`v1.2.0` or `1.2.0`). Pushing a tag alone builds nothing; publish a release from it.
+
+### Deploying releases to Portainer
+
+The `deploy` job runs `scripts/portainer-deploy.sh`. It finds the stack by name through the Portainer API, sets its `ghcr.io/hackjack-101/recipes-v2` image to the release version (for example `:1.2.0`), keeps the stack's environment variables, and redeploys it with a fresh pull. It works with stacks created in Portainer's **Web editor**.
+
+1. In Portainer, open **My account** → **Access tokens** → **Add access token**, and copy the token.
+2. In GitHub, open **Settings** → **Environments** → **New environment** and name it `production`. Optionally add yourself as a required reviewer to approve each deploy.
+3. In that environment (or in the repository's **Secrets and variables** → **Actions**), add:
+
+   | Name | Kind | Value |
+   | --- | --- | --- |
+   | `PORTAINER_URL` | variable | `https://portainer.example.com` |
+   | `PORTAINER_STACK` | variable | Stack name (optional, default `recipes`) |
+   | `PORTAINER_TOKEN` | secret | The access token |
+   | `PORTAINER_BASIC_AUTH` | secret | `user:password`, only if a proxy puts basic auth in front of Portainer |
+
+To roll back, re-run the `deploy` job of an earlier release, or set the image tag in the stack's editor.
