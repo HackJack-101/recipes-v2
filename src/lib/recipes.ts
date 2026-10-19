@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, count, desc, eq, exists, ilike, inArray, or, sql } from "drizzle-orm";
 import { db, type Tx } from "@/db";
-import { ingredients, photos, recipes, recipeTags, steps, tags } from "@/db/schema";
+import { favorites, ingredients, photos, recipes, recipeTags, steps, tags } from "@/db/schema";
 import type { RecipeInput } from "./recipe-input";
 
 export type FullRecipe = NonNullable<Awaited<ReturnType<typeof loadRecipe>>>;
@@ -123,11 +123,37 @@ export type RecipeCard = {
   totalMinutes: number | null;
   tags: string[];
   coverPhotoId: string | null;
+  favorite: boolean;
 };
+
+const byTitle = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
+
+/** The user's favorites first, then alphabetical (ignoring case and accents). */
+export const compareCards = (a: RecipeCard, b: RecipeCard) =>
+  Number(b.favorite) - Number(a.favorite) || byTitle.compare(a.title, b.title);
+
+export async function isFavorite(userId: string, recipeId: string) {
+  const [row] = await db
+    .select({ one: sql`1` })
+    .from(favorites)
+    .where(and(eq(favorites.userId, userId), eq(favorites.recipeId, recipeId)))
+    .limit(1);
+  return Boolean(row);
+}
+
+export async function setFavorite(userId: string, recipeId: string, favorite: boolean) {
+  if (favorite) await db.insert(favorites).values({ userId, recipeId }).onConflictDoNothing();
+  else await db.delete(favorites).where(and(eq(favorites.userId, userId), eq(favorites.recipeId, recipeId)));
+}
 
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
-export async function searchRecipes(kitchenId: string, query: string, tag: string | null): Promise<RecipeCard[]> {
+export async function searchRecipes(
+  kitchenId: string,
+  userId: string,
+  query: string,
+  tag: string | null,
+): Promise<RecipeCard[]> {
   const conditions = [eq(recipes.kitchenId, kitchenId)];
   const q = query.trim();
   if (q) {
@@ -158,21 +184,31 @@ export async function searchRecipes(kitchenId: string, query: string, tag: strin
     );
   }
 
-  const rows = await db.query.recipes.findMany({
-    where: and(...conditions),
-    orderBy: desc(recipes.updatedAt),
-    columns: { id: true, title: true, prepMinutes: true, cookMinutes: true },
-    with: {
-      photos: { columns: { id: true }, orderBy: asc(photos.position), limit: 1 },
-      recipeTags: { with: { tag: { columns: { name: true } } } },
-    },
-  });
+  const [rows, favoriteRows] = await Promise.all([
+    db.query.recipes.findMany({
+      where: and(...conditions),
+      columns: { id: true, title: true, prepMinutes: true, cookMinutes: true },
+      with: {
+        photos: { columns: { id: true }, orderBy: asc(photos.position), limit: 1 },
+        recipeTags: { with: { tag: { columns: { name: true } } } },
+      },
+    }),
+    db
+      .select({ recipeId: favorites.recipeId })
+      .from(favorites)
+      .innerJoin(recipes, eq(recipes.id, favorites.recipeId))
+      .where(and(eq(favorites.userId, userId), eq(recipes.kitchenId, kitchenId))),
+  ]);
+  const favoriteIds = new Set(favoriteRows.map((f) => f.recipeId));
 
-  return rows.map((r) => ({
-    id: r.id,
-    title: r.title,
-    totalMinutes: r.prepMinutes == null && r.cookMinutes == null ? null : (r.prepMinutes ?? 0) + (r.cookMinutes ?? 0),
-    tags: r.recipeTags.map((t) => t.tag.name).sort(),
-    coverPhotoId: r.photos[0]?.id ?? null,
-  }));
+  return rows
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      totalMinutes: r.prepMinutes == null && r.cookMinutes == null ? null : (r.prepMinutes ?? 0) + (r.cookMinutes ?? 0),
+      tags: r.recipeTags.map((t) => t.tag.name).sort(),
+      coverPhotoId: r.photos[0]?.id ?? null,
+      favorite: favoriteIds.has(r.id),
+    }))
+    .sort(compareCards);
 }

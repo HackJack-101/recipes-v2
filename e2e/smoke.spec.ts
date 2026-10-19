@@ -48,6 +48,14 @@ test("sign in, create a kitchen and a recipe, scale and share it", async ({ page
   await page.getByRole("button", { name: "Fewer guests" }).click();
   await expect(page.getByText("½ cup")).toBeVisible();
 
+  // Favorite: starred on the recipe, shown on its card in the kitchen.
+  await page.getByRole("button", { name: "Favorite" }).click();
+  await expect(page.getByRole("button", { name: "Favorite" })).toHaveAttribute("aria-pressed", "true");
+  const recipeUrl = page.url();
+  await page.goto(kitchenUrl);
+  await expect(page.getByRole("button", { name: "Favorite" })).toHaveAttribute("aria-pressed", "true");
+  await page.goto(recipeUrl);
+
   // Public link works without an account.
   await page.getByRole("button", { name: "Share" }).click();
   await page.getByRole("button", { name: "Create a public link" }).click();

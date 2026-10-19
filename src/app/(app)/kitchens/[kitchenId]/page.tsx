@@ -23,11 +23,11 @@ export async function generateMetadata({ params }: Props) {
 export default async function KitchenPage({ params, searchParams }: Props) {
   const { kitchenId } = await params;
   const { q = "", tag = null } = await searchParams;
-  const { kitchen, actor } = await requireKitchen(kitchenId);
+  const { kitchen, actor, user } = await requireKitchen(kitchenId);
   const [t, tags, cards] = await Promise.all([
     getTranslations("kitchen"),
     kitchenTagCounts(kitchen.id),
-    searchRecipes(kitchen.id, q, tag),
+    searchRecipes(kitchen.id, user.id, q, tag),
   ]);
   const filtering = Boolean(q || tag);
 

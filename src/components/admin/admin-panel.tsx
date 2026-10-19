@@ -1,13 +1,15 @@
 "use client";
 
-import { ChefHat, Plus, Settings, Shield, UserPlus } from "lucide-react";
+import { ChefHat, Pencil, Plus, Settings, Shield, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { createKitchenAction, createUserAction } from "@/app/actions/admin";
+import { createKitchenAction, createUserAction, renameUserAction } from "@/app/actions/admin";
+import type { FormState } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
 import { Input, Label, Select } from "@/components/ui/input";
 
 type Props = {
@@ -36,7 +38,7 @@ export function AdminPanel({ users, kitchens }: Props) {
   }, [kitchenState, t]);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <Card className="p-5 sm:p-6">
         <h2 className="text-xl font-semibold">{t("users")}</h2>
         <ul className="mt-4 divide-y">
@@ -52,6 +54,7 @@ export function AdminPanel({ users, kitchens }: Props) {
                   {t("superAdmin")}
                 </Badge>
               )}
+              <RenameUser user={u} />
             </li>
           ))}
         </ul>
@@ -137,5 +140,42 @@ export function AdminPanel({ users, kitchens }: Props) {
         </form>
       </Card>
     </div>
+  );
+}
+
+function RenameUser({ user }: { user: { id: string; name: string } }) {
+  const t = useTranslations("admin");
+  const [open, setOpen] = useState(false);
+  const [state, rename, renaming] = useActionState(async (prev: FormState, formData: FormData) => {
+    const result = await renameUserAction(user.id, prev, formData);
+    if (result?.ok) {
+      toast.success(t("nameSaved"));
+      setOpen(false);
+    }
+    return result;
+  }, undefined);
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={setOpen}
+      title={t("editName")}
+      trigger={
+        <Button variant="ghost" size="icon-sm" aria-label={t("editNameOf", { name: user.name })} title={t("editName")}>
+          <Pencil />
+        </Button>
+      }
+    >
+      <form action={rename} className="space-y-4">
+        <div>
+          <Label htmlFor={`name-${user.id}`}>{t("name")}</Label>
+          <Input id={`name-${user.id}`} name="name" defaultValue={user.name} required maxLength={80} autoFocus />
+        </div>
+        {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+        <Button type="submit" className="w-full" disabled={renaming}>
+          {t("save")}
+        </Button>
+      </form>
+    </Dialog>
   );
 }

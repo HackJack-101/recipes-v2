@@ -16,7 +16,7 @@ curl -o .env https://raw.githubusercontent.com/HackJack-101/recipes-v2/main/.env
 docker compose up -d
 ```
 
-Open `APP_URL` (default http://localhost:3000) and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`. The super admin is created on first start, when the database has no users. From the **Administration** page, create accounts and kitchens; kitchen owners then manage their members. Owners can also create **invite links** from the kitchen settings: whoever opens one creates an account (or signs in) and joins as a member. Each link works once and expires after 24 hours.
+Open `APP_URL` (default http://localhost:3000) and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`. The super admin is created on first start, when the database has no users. From the **Administration** page, create accounts and kitchens, and rename any account (including the first admin); kitchen owners then manage their members. Owners can also create **invite links** from the kitchen settings: whoever opens one creates an account (or signs in) and joins as a member. Each link works once and expires after 24 hours.
 
 Database migrations run automatically when the container starts. Data lives in two volumes: `pgdata` (database) and `uploads` (photos). Back up both.
 

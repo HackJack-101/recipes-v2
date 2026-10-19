@@ -11,7 +11,7 @@ import { requireKitchen, requireRecipe } from "@/lib/access";
 import { aiImportEnabled, extractRecipe, NoRecipeFound, type ImportSource } from "@/lib/ai-import";
 import { deletePhotoFile, storePhoto } from "@/lib/photos";
 import { recipeInput, type RecipeInput } from "@/lib/recipe-input";
-import { kitchenTags, pruneUnusedTags, saveRecipe } from "@/lib/recipes";
+import { kitchenTags, pruneUnusedTags, saveRecipe, setFavorite } from "@/lib/recipes";
 
 export type SaveResult = { error: string } | undefined;
 
@@ -80,6 +80,13 @@ export async function setSharingAction(recipeId: string, shared: boolean) {
   await db.update(recipes).set({ shareToken }).where(eq(recipes.id, recipe.id));
   revalidatePath(`/recipes/${recipe.id}`);
   return shareToken;
+}
+
+export async function setFavoriteAction(recipeId: string, favorite: boolean) {
+  const { user, recipe } = await requireRecipe(recipeId);
+  await setFavorite(user.id, recipe.id, favorite);
+  revalidatePath(`/kitchens/${recipe.kitchenId}`);
+  revalidatePath(`/recipes/${recipe.id}`);
 }
 
 export type ImportResult = { recipe: RecipeInput } | { error: string };

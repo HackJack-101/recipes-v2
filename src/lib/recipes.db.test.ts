@@ -11,7 +11,8 @@ describe.skipIf(!url)("recipes (database)", async () => {
   const { db } = await import("@/db");
   const { setupDatabase } = await import("@/db/setup");
   const { kitchens, tags, users } = await import("@/db/schema");
-  const { kitchenTagCounts, kitchenTags, loadRecipe, saveRecipe, searchRecipes, toRecipeInput } = await import("./recipes");
+  const { isFavorite, kitchenTagCounts, kitchenTags, loadRecipe, saveRecipe, searchRecipes, setFavorite, toRecipeInput } =
+    await import("./recipes");
   const { eq } = await import("drizzle-orm");
 
   let kitchenId: string;
@@ -54,12 +55,12 @@ describe.skipIf(!url)("recipes (database)", async () => {
 
   it("searches titles, descriptions and tags, and filters by tag", async () => {
     await saveRecipe(kitchenId, { ...crepes, title: "Ratatouille", description: "Provençal stew", tags: ["vegetarian"] }, userId);
-    expect((await searchRecipes(kitchenId, "crêp", null)).map((r) => r.title)).toEqual(["Crêpes"]);
-    expect((await searchRecipes(kitchenId, "stew", null)).map((r) => r.title)).toEqual(["Ratatouille"]);
-    expect((await searchRecipes(kitchenId, "VEGETAR", null)).map((r) => r.title)).toEqual(["Ratatouille"]);
-    expect((await searchRecipes(kitchenId, "", "dessert")).map((r) => r.title)).toEqual(["Crêpes"]);
-    expect((await searchRecipes(kitchenId, "100%", null))).toEqual([]);
-    const [card] = await searchRecipes(kitchenId, "crêpes", null);
+    expect((await searchRecipes(kitchenId, userId, "crêp", null)).map((r) => r.title)).toEqual(["Crêpes"]);
+    expect((await searchRecipes(kitchenId, userId, "stew", null)).map((r) => r.title)).toEqual(["Ratatouille"]);
+    expect((await searchRecipes(kitchenId, userId, "VEGETAR", null)).map((r) => r.title)).toEqual(["Ratatouille"]);
+    expect((await searchRecipes(kitchenId, userId, "", "dessert")).map((r) => r.title)).toEqual(["Crêpes"]);
+    expect((await searchRecipes(kitchenId, userId, "100%", null))).toEqual([]);
+    const [card] = await searchRecipes(kitchenId, userId, "crêpes", null);
     expect(card.totalMinutes).toBe(30);
   });
 
@@ -82,6 +83,46 @@ describe.skipIf(!url)("recipes (database)", async () => {
       { name: "savory", count: 2 },
       { name: "french", count: 1 },
       { name: "vegetarian", count: 1 },
+    ]);
+  });
+
+  it("lists favorites first, then alphabetically, per user", async () => {
+    const titles = async (uid: string) => (await searchRecipes(kitchenId, uid, "", null)).map((r) => [r.title, r.favorite]);
+    expect(await titles(userId)).toEqual([
+      ["Clafoutis", false],
+      ["Crêpes", false],
+      ["Far breton", false],
+      ["Galettes", false],
+      ["Ratatouille", false],
+    ]);
+
+    const [ratatouille] = await searchRecipes(kitchenId, userId, "ratatouille", null);
+    const [far] = await searchRecipes(kitchenId, userId, "far breton", null);
+    await setFavorite(userId, ratatouille.id, true);
+    await setFavorite(userId, ratatouille.id, true); // idempotent
+    await setFavorite(userId, far.id, true);
+    expect(await isFavorite(userId, ratatouille.id)).toBe(true);
+    expect(await titles(userId)).toEqual([
+      ["Far breton", true],
+      ["Ratatouille", true],
+      ["Clafoutis", false],
+      ["Crêpes", false],
+      ["Galettes", false],
+    ]);
+
+    // Another cook doesn't see someone else's favorites.
+    const [{ id: otherId }] = await db
+      .insert(users)
+      .values({ email: `other-${kitchenId}@test.local`, name: "Other", passwordHash: "x" })
+      .returning({ id: users.id });
+    expect((await titles(otherId))[0]).toEqual(["Clafoutis", false]);
+    await db.delete(users).where(eq(users.id, otherId));
+
+    await setFavorite(userId, far.id, false);
+    expect(await isFavorite(userId, far.id)).toBe(false);
+    expect((await titles(userId)).slice(0, 2)).toEqual([
+      ["Ratatouille", true],
+      ["Clafoutis", false],
     ]);
   });
 });

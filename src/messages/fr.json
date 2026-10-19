@@ -106,7 +106,10 @@
     "cancel": "Annuler",
     "keepAwake": "Écran allumé",
     "keepAwakeOn": "L’écran reste allumé tant que la recette est ouverte",
-    "keepAwakeError": "Cet appareil ne peut pas garder l’écran allumé."
+    "keepAwakeError": "Cet appareil ne peut pas garder l’écran allumé.",
+    "favorite": "Favori",
+    "unfavorite": "Retirer des favoris",
+    "favoriteError": "Impossible de mettre à jour vos favoris. Réessayez."
   },
   "editor": {
     "newTitle": "Nouvelle recette",
@@ -186,7 +189,12 @@
     "chooseOwner": "Choisir un propriétaire…",
     "createKitchen": "Créer la cuisine",
     "kitchenCreated": "Cuisine créée",
-    "invalidKitchen": "Saisissez un nom et choisissez un propriétaire."
+    "invalidKitchen": "Saisissez un nom et choisissez un propriétaire.",
+    "editName": "Modifier le nom",
+    "editNameOf": "Modifier le nom de {name}",
+    "save": "Enregistrer",
+    "nameSaved": "Nom mis à jour",
+    "invalidName": "Saisissez un nom (80 caractères max)."
   },
   "share": {
     "sharedRecipe": "Recette partagée"

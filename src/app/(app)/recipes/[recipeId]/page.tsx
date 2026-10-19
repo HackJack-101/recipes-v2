@@ -2,7 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRecipe } from "@/lib/access";
-import { loadRecipe } from "@/lib/recipes";
+import { isFavorite, loadRecipe } from "@/lib/recipes";
 import { RecipeActions } from "@/components/recipe/recipe-actions";
 import { RecipeBody } from "@/components/recipe/recipe-body";
 import { RecipeHeader } from "@/components/recipe/recipe-header";
@@ -15,8 +15,8 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function RecipePage({ params }: Props) {
-  const { recipe: base } = await requireRecipe((await params).recipeId);
-  const recipe = await loadRecipe({ id: base.id });
+  const { recipe: base, user } = await requireRecipe((await params).recipeId);
+  const [recipe, favorite] = await Promise.all([loadRecipe({ id: base.id }), isFavorite(user.id, base.id)]);
   if (!recipe) notFound();
   const appUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "";
 
@@ -30,7 +30,12 @@ export default async function RecipePage({ params }: Props) {
           <ArrowLeft className="size-4 shrink-0" />
           <span className="truncate">{recipe.kitchen.name}</span>
         </Link>
-        <RecipeActions recipeId={recipe.id} shareUrl={recipe.shareToken ? `${appUrl}/share/${recipe.shareToken}` : null} appUrl={appUrl} />
+        <RecipeActions
+          recipeId={recipe.id}
+          favorite={favorite}
+          shareUrl={recipe.shareToken ? `${appUrl}/share/${recipe.shareToken}` : null}
+          appUrl={appUrl}
+        />
       </div>
       <RecipeHeader recipe={recipe} />
       <RecipeBody

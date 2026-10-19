@@ -10,9 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/dropdown";
 import { Input } from "@/components/ui/input";
+import { FavoriteButton } from "./favorite-button";
 import { WakeLockButton } from "./wake-lock-button";
 
-export function RecipeActions({ recipeId, shareUrl, appUrl }: { recipeId: string; shareUrl: string | null; appUrl: string }) {
+type Props = { recipeId: string; favorite: boolean; shareUrl: string | null; appUrl: string };
+
+export function RecipeActions({ recipeId, favorite, shareUrl, appUrl }: Props) {
   const t = useTranslations("recipe");
   const [shareOpen, setShareOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -36,6 +39,7 @@ export function RecipeActions({ recipeId, shareUrl, appUrl }: { recipeId: string
 
   return (
     <div className="flex shrink-0 items-center gap-1.5">
+      <FavoriteButton recipeId={recipeId} favorite={favorite} />
       <WakeLockButton />
       <Button variant="outline" size="sm" asChild>
         <Link href={`/recipes/${recipeId}/edit`}>

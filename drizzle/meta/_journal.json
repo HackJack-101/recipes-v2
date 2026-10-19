@@ -15,6 +15,13 @@
       "when": 1792334440120,
       "tag": "0001_invites",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792409669700,
+      "tag": "0002_favorites",
+      "breakpoints": true
     }
   ]
 }

@@ -76,6 +76,20 @@ export const kitchenInvites = pgTable(
   (t) => [index("kitchen_invites_kitchen_idx").on(t.kitchenId)],
 );
 
+export const favorites = pgTable(
+  "favorites",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipeId: uuid("recipe_id")
+      .notNull()
+      .references(() => recipes.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.recipeId] })],
+);
+
 export const recipes = pgTable(
   "recipes",
   {

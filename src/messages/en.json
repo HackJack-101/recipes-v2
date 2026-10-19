@@ -106,7 +106,10 @@
     "cancel": "Cancel",
     "keepAwake": "Keep screen on",
     "keepAwakeOn": "Screen stays on while this recipe is open",
-    "keepAwakeError": "This device could not keep the screen on."
+    "keepAwakeError": "This device could not keep the screen on.",
+    "favorite": "Favorite",
+    "unfavorite": "Remove from favorites",
+    "favoriteError": "Couldn't update your favorites. Try again."
   },
   "editor": {
     "newTitle": "New recipe",
@@ -186,7 +189,12 @@
     "chooseOwner": "Choose an owner…",
     "createKitchen": "Create kitchen",
     "kitchenCreated": "Kitchen created",
-    "invalidKitchen": "Enter a name and choose an owner."
+    "invalidKitchen": "Enter a name and choose an owner.",
+    "editName": "Edit name",
+    "editNameOf": "Edit {name}'s name",
+    "save": "Save",
+    "nameSaved": "Name updated",
+    "invalidName": "Please enter a name (80 characters max)."
   },
   "share": {
     "sharedRecipe": "Shared recipe"
