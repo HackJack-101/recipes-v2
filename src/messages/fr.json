@@ -72,7 +72,9 @@
     "inviteShownOnce": "Copiez-le maintenant : par sécurité, il ne sera plus affiché.",
     "pendingInvites": "Liens non utilisés",
     "pendingInvite": "Créé par {name} · expire dans {hours} h",
-    "revokeInvite": "Révoquer"
+    "revokeInvite": "Révoquer",
+    "moreTags": "+{count} autres",
+    "fewerTags": "Voir moins"
   },
   "recipe": {
     "ingredients": "Ingrédients",
