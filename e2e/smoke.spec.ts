@@ -60,6 +60,21 @@ test("sign in, create a kitchen and a recipe, scale and share it", async ({ page
   await page.reload();
   await expect(flour).not.toBeChecked();
 
+  // "I made it": counted per user, unticks the ingredients, then offers to add a photo.
+  await Promise.all([saved(), flour.check({ force: true })]);
+  await page.getByRole("button", { name: "I made it!" }).click();
+  await expect(page.getByRole("dialog", { name: "Bon appétit!" })).toBeVisible();
+  await page.getByRole("button", { name: "Not now" }).click();
+  await expect(page.getByText(/^Made once · last on /)).toBeVisible();
+  await expect(flour).not.toBeChecked();
+  await page.reload();
+  await expect(flour).not.toBeChecked();
+  await page.getByRole("button", { name: "I made it!" }).click();
+  await page.getByRole("button", { name: "Add a photo" }).click();
+  await expect(page).toHaveURL(/\/edit#photos$/);
+  await page.goBack();
+  await expect(page.getByText(/^Made 2 times · last on /)).toBeVisible();
+
   // Favorite: starred on the recipe, shown on its card in the kitchen.
   await page.getByRole("button", { name: "Favorite" }).click();
   await expect(page.getByRole("button", { name: "Favorite" })).toHaveAttribute("aria-pressed", "true");

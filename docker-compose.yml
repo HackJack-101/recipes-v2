@@ -13,6 +13,7 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:-Admin}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5-5}
+      TIME_ZONE: ${TIME_ZONE:-Europe/Paris}
     volumes:
       - uploads:/data/uploads
     healthcheck:

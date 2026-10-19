@@ -1,7 +1,7 @@
 import "server-only";
-import { and, asc, count, desc, eq, exists, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, exists, ilike, inArray, max, or, sql } from "drizzle-orm";
 import { db, type Tx } from "@/db";
-import { favorites, ingredientChecks, ingredients, photos, recipes, recipeTags, steps, tags } from "@/db/schema";
+import { favorites, ingredientChecks, ingredients, photos, recipeCooks, recipes, recipeTags, steps, tags } from "@/db/schema";
 import type { RecipeInput } from "./recipe-input";
 import { canonicalTags, tagSlug } from "./tags";
 
@@ -173,18 +173,37 @@ export async function setIngredientChecked(userId: string, recipeId: string, ing
     on conflict do nothing`);
 }
 
-export async function resetIngredientChecks(userId: string, recipeId: string) {
-  await db
+export async function resetIngredientChecks(userId: string, recipeId: string, tx: Tx | typeof db = db) {
+  await tx
     .delete(ingredientChecks)
     .where(
       and(
         eq(ingredientChecks.userId, userId),
         inArray(
           ingredientChecks.ingredientId,
-          db.select({ id: ingredients.id }).from(ingredients).where(eq(ingredients.recipeId, recipeId)),
+          tx.select({ id: ingredients.id }).from(ingredients).where(eq(ingredients.recipeId, recipeId)),
         ),
       ),
     );
+}
+
+export type CookStats = { count: number; last: Date | null };
+
+/** How many times the user made the recipe, and when they last did. */
+export async function cookStats(userId: string, recipeId: string): Promise<CookStats> {
+  const [row] = await db
+    .select({ count: count(), last: max(recipeCooks.cookedAt) })
+    .from(recipeCooks)
+    .where(and(eq(recipeCooks.userId, userId), eq(recipeCooks.recipeId, recipeId)));
+  return { count: row.count, last: row.last };
+}
+
+/** Records that the user made the recipe, and unticks its ingredients for next time. */
+export async function logCook(userId: string, recipeId: string) {
+  await db.transaction(async (tx) => {
+    await tx.insert(recipeCooks).values({ userId, recipeId });
+    await resetIngredientChecks(userId, recipeId, tx);
+  });
 }
 
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);

@@ -2,7 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRecipe } from "@/lib/access";
-import { checkedIngredients, isFavorite, loadRecipe } from "@/lib/recipes";
+import { checkedIngredients, cookStats, isFavorite, loadRecipe } from "@/lib/recipes";
 import { RecipeActions } from "@/components/recipe/recipe-actions";
 import { RecipeBody } from "@/components/recipe/recipe-body";
 import { RecipeHeader } from "@/components/recipe/recipe-header";
@@ -16,10 +16,11 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function RecipePage({ params }: Props) {
   const { recipe: base, user } = await requireRecipe((await params).recipeId);
-  const [recipe, favorite, checked] = await Promise.all([
+  const [recipe, favorite, checked, cooked] = await Promise.all([
     loadRecipe({ id: base.id }),
     isFavorite(user.id, base.id),
     checkedIngredients(user.id, base.id),
+    cookStats(user.id, base.id),
   ]);
   if (!recipe) notFound();
   const appUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "";
@@ -47,6 +48,7 @@ export default async function RecipePage({ params }: Props) {
         ingredients={recipe.ingredients}
         steps={recipe.steps.map((s) => s.text)}
         checklist={{ recipeId: recipe.id, checked }}
+        cooked={cooked}
       />
     </article>
   );

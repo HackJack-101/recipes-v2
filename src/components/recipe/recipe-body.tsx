@@ -1,13 +1,15 @@
 "use client";
 
-import { Check, Minus, Plus, RotateCcw, Users } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { Camera, Check, Minus, PartyPopper, Plus, RotateCcw, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { resetIngredientChecksAction, setIngredientCheckedAction } from "@/app/actions/recipes";
+import { markCookedAction, resetIngredientChecksAction, setIngredientCheckedAction } from "@/app/actions/recipes";
 import { MULTIPLIERS, scaleFactor, scaleQuantity } from "@/lib/scaler";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 
 type Props = {
   servings: number | null;
@@ -15,11 +17,15 @@ type Props = {
   steps: string[];
   /** Saves ticked ingredients for the signed-in user. Without it (public page) they're kept in the page only. */
   checklist?: { recipeId: string; checked: string[] };
+  /** How many times the signed-in user made the recipe. Shows the "I made it" button. */
+  cooked?: { count: number; last: Date | null };
 };
 
 /** Ingredients (with the guest scaler) beside the steps on large screens, stacked on phones. */
-export function RecipeBody({ servings, ingredients, steps, checklist }: Props) {
+export function RecipeBody({ servings, ingredients, steps, checklist, cooked }: Props) {
   const t = useTranslations("recipe");
+  const format = useFormatter();
+  const router = useRouter();
   const locale = useLocale();
   const [guests, setGuests] = useState(servings ?? 1);
   const factor = scaleFactor(servings, guests);
@@ -50,6 +56,23 @@ export function RecipeBody({ servings, ingredients, steps, checklist }: Props) {
     setChecked(new Set());
     if (checklist) save(() => resetIngredientChecksAction(checklist.recipeId), checked);
   };
+
+  const [cooking, startCooking] = useTransition();
+  const [photoPrompt, setPhotoPrompt] = useState(false);
+
+  const markCooked = (recipeId: string) =>
+    startCooking(async () => {
+      try {
+        await markCookedAction(recipeId);
+      } catch {
+        toast.error(t("cookedError"));
+        return;
+      }
+      // Ready for next time.
+      setChecked(new Set());
+      setDone(new Set());
+      setPhotoPrompt(true);
+    });
 
   const toggleStep = (i: number) =>
     setDone((prev) => {
@@ -200,6 +223,33 @@ export function RecipeBody({ servings, ingredients, steps, checklist }: Props) {
               </li>
             ))}
           </ol>
+        )}
+
+        {checklist && cooked && (
+          <div className="no-print mt-8 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 px-5 py-6 text-center">
+            <Button size="lg" onClick={() => markCooked(checklist.recipeId)} disabled={cooking}>
+              <PartyPopper />
+              {t("markCooked")}
+            </Button>
+            {cooked.count > 0 && cooked.last && (
+              <p className="text-sm text-muted-foreground">
+                {t("cookedStats", { count: cooked.count, date: format.dateTime(cooked.last, { dateStyle: "long" }) })}
+              </p>
+            )}
+          </div>
+        )}
+        {checklist && (
+          <Dialog open={photoPrompt} onOpenChange={setPhotoPrompt} title={t("cookedTitle")} description={t("photoPrompt")}>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setPhotoPrompt(false)}>
+                {t("notNow")}
+              </Button>
+              <Button onClick={() => router.push(`/recipes/${checklist.recipeId}/edit#photos`)}>
+                <Camera />
+                {t("addPhoto")}
+              </Button>
+            </div>
+          </Dialog>
         )}
       </section>
     </div>

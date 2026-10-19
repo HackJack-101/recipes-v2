@@ -13,10 +13,12 @@ describe.skipIf(!url)("recipes (database)", async () => {
   const { kitchens, recipeTags, tags, users } = await import("@/db/schema");
   const {
     checkedIngredients,
+    cookStats,
     isFavorite,
     kitchenTagCounts,
     kitchenTags,
     loadRecipe,
+    logCook,
     resetIngredientChecks,
     saveRecipe,
     searchRecipes,
@@ -202,5 +204,28 @@ describe.skipIf(!url)("recipes (database)", async () => {
 
     await saveRecipe(kitchenId, { ...crepes, title: "Other" }, userId, other);
     expect(await checkedIngredients(userId, other)).toEqual([]);
+  });
+
+  it("logs each time a user makes a recipe and unticks its ingredients", async () => {
+    const id = await saveRecipe(kitchenId, { ...crepes, title: "Cooked" }, userId);
+    const [flour] = (await loadRecipe({ id }))!.ingredients;
+    expect(await cookStats(userId, id)).toEqual({ count: 0, last: null });
+
+    await setIngredientChecked(userId, id, flour.id, true);
+    const before = Date.now();
+    await logCook(userId, id);
+    await logCook(userId, id);
+    const stats = await cookStats(userId, id);
+    expect(stats.count).toBe(2);
+    expect(stats.last).toBeInstanceOf(Date);
+    expect(stats.last!.getTime()).toBeGreaterThanOrEqual(before - 1000);
+    expect(await checkedIngredients(userId, id)).toEqual([]);
+
+    const [{ id: otherId }] = await db
+      .insert(users)
+      .values({ email: `cook2-${kitchenId}@test.local`, name: "Other", passwordHash: "x" })
+      .returning({ id: users.id });
+    expect((await cookStats(otherId, id)).count).toBe(0);
+    await db.delete(users).where(eq(users.id, otherId));
   });
 });

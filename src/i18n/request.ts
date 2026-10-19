@@ -7,6 +7,8 @@ export default getRequestConfig(async () => {
   const locale = isLocale(cookie) ? cookie : negotiateLocale((await headers()).get("accept-language"));
   return {
     locale,
+    // Dates are shown in the household's time zone, the same on the server and in the browser.
+    timeZone: process.env.TIME_ZONE || "UTC",
     messages: (await import(`../messages/${locale}.json`)).default,
   };
 });
