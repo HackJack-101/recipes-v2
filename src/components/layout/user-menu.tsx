@@ -12,9 +12,10 @@ import { Dropdown, DropdownItem, DropdownLabel, DropdownSeparator } from "@/comp
 type Props = {
   user: { name: string; email: string; isSuperAdmin: boolean };
   kitchens: { id: string; name: string }[];
+  version: string;
 };
 
-export function UserMenu({ user, kitchens }: Props) {
+export function UserMenu({ user, kitchens, version }: Props) {
   const t = useTranslations("menu");
   const locale = useLocale();
   const router = useRouter();
@@ -99,6 +100,8 @@ export function UserMenu({ user, kitchens }: Props) {
         <LogOut />
         {t("logout")}
       </DropdownItem>
+      <DropdownSeparator />
+      <p className="px-2.5 py-1.5 text-xs text-muted-foreground tabular-nums">{t("version", { version })}</p>
     </Dropdown>
   );
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth";
 import { userKitchens } from "@/lib/kitchens";
+import { appVersion } from "@/lib/version";
 import { Logo } from "@/components/layout/logo";
 import { UserMenu } from "@/components/layout/user-menu";
 
@@ -18,6 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <UserMenu
             user={{ name: user.name, email: user.email, isSuperAdmin: user.isSuperAdmin }}
             kitchens={kitchens.map(({ id, name }) => ({ id, name }))}
+            version={appVersion()}
           />
         </div>
       </header>
