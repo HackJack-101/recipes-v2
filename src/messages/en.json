@@ -94,6 +94,7 @@
     "shareRevoked": "Public link revoked",
     "linkCopied": "Link copied",
     "edit": "Edit",
+    "tagRecipes": "Recipes tagged “{tag}”",
     "share": "Share",
     "more": "More actions",
     "exportMarkdown": "Export as Markdown",

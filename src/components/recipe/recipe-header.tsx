@@ -1,11 +1,19 @@
 import { ChefHat, Clock, Flame, Users } from "lucide-react";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { FullRecipe } from "@/lib/recipes";
 import { formatDuration } from "@/lib/format";
 import { Badge } from "@/components/ui/card";
 import { PhotoGallery } from "./photo-gallery";
 
-export async function RecipeHeader({ recipe, photoQuery = "" }: { recipe: FullRecipe; photoQuery?: string }) {
+type Props = {
+  recipe: FullRecipe;
+  photoQuery?: string;
+  /** Makes each tag a link to the kitchen's recipes with that tag (members only, not on public pages). */
+  linkTags?: boolean;
+};
+
+export async function RecipeHeader({ recipe, photoQuery = "", linkTags = false }: Props) {
   const t = await getTranslations("recipe");
   const total = (recipe.prepMinutes ?? 0) + (recipe.cookMinutes ?? 0);
   const facts = [
@@ -21,9 +29,20 @@ export async function RecipeHeader({ recipe, photoQuery = "" }: { recipe: FullRe
       <h1 className="mt-6 text-3xl font-semibold leading-tight text-balance sm:text-5xl">{recipe.title}</h1>
       {recipe.tags.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {recipe.tags.map((tag) => (
-            <Badge key={tag}>{tag}</Badge>
-          ))}
+          {recipe.tags.map((tag) =>
+            linkTags ? (
+              <Link
+                key={tag}
+                href={`/kitchens/${recipe.kitchenId}?${new URLSearchParams({ tag })}`}
+                title={t("tagRecipes", { tag })}
+                className="rounded-full transition hover:ring-2 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Badge className="py-1">{tag}</Badge>
+              </Link>
+            ) : (
+              <Badge key={tag}>{tag}</Badge>
+            ),
+          )}
         </div>
       )}
       {recipe.description && (
