@@ -89,15 +89,18 @@ e2e/              Playwright tests
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs on every push and pull request: lint, typecheck, unit and database tests (against a PostgreSQL service), production build and Playwright tests. It then builds a multi-arch (amd64/arm64) image and pushes it to GHCR:
-
-| Trigger | Image tags |
-| --- | --- |
-| Push to `main` | `latest`, `sha-<commit>` |
-| Published GitHub release (tag `v1.2.0`) | `1.2.0`, `1.2`, `stable`, `sha-<commit>`, then deploys to Portainer |
-| Published pre-release (tag `v1.3.0-rc.1`) | `1.3.0-rc.1`, `sha-<commit>` (no `stable`, no deploy) |
+| Event | Workflow | Runs |
+| --- | --- | --- |
+| Pull request | `ci.yml` | Lint, typecheck, unit and database tests (PostgreSQL service), production build, Playwright. Required to merge. |
+| Push to `main` | `ci.yml` | The same tests, then a multi-arch (amd64/arm64) image pushed to GHCR as `latest` and `sha-<commit>`. Docs-only changes skip it. |
+| Published release (tag `v1.2.0`) | `release.yml` | Image tagged `1.2.0`, `1.2`, `stable` and `sha-<commit>`, then the Portainer deploy. No tests: the commit passed them on its pull request. |
+| Published pre-release (`v1.3.0-rc.1`) | `release.yml` | Image tagged `1.3.0-rc.1` and `sha-<commit>` only: no `stable`, no deploy. |
 
 Release tags must be semver (`v1.2.0` or `1.2.0`). Pushing a tag alone builds nothing; publish a release from it.
+
+### Contributing
+
+`main` is protected: changes go through a pull request, the **Lint, test & build** check must pass, and the branch must be up to date with `main`. Rebase your branch rather than merging `main` into it (`git pull --rebase origin main`, or **Update branch** → **Update with rebase** on GitHub). Pull requests are merged with **Squash and merge**, using the pull request's title and description as the commit message, so `main` keeps one commit per change.
 
 ### Deploying releases to Portainer
 
