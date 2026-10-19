@@ -278,6 +278,7 @@ function RowControls({
 function TagInput({ value, onChange, suggestions }: { value: string[]; onChange: (v: string[]) => void; suggestions: string[] }) {
   const t = useTranslations("editor");
   const [draft, setDraft] = useState("");
+  const suggestionList = useRef<HTMLDivElement>(null);
   const add = (raw: string) => {
     const tag = raw.trim().toLowerCase().slice(0, 40);
     if (tag && !value.includes(tag)) onChange([...value, tag]);
@@ -314,17 +315,22 @@ function TagInput({ value, onChange, suggestions }: { value: string[]; onChange:
               onChange(value.slice(0, -1));
             }
           }}
-          onBlur={() => draft && add(draft)}
+          onBlur={(e) => {
+            // Picking a suggestion replaces the draft; don't also save the half-typed text.
+            if (draft && !suggestionList.current?.contains(e.relatedTarget)) add(draft);
+          }}
           placeholder={value.length ? "" : t("tagsPlaceholder")}
           className="h-8 min-w-24 flex-1 bg-transparent px-1 text-base outline-none sm:text-sm"
         />
       </div>
       {remaining.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div ref={suggestionList} className="mt-2 flex flex-wrap gap-1.5">
           {remaining.map((s) => (
             <button
               key={s}
               type="button"
+              // Keep focus in the input so a click or tap doesn't blur it first.
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => add(s)}
               className="h-8 rounded-full border border-dashed px-3 text-sm text-muted-foreground hover:border-solid hover:bg-muted"
             >

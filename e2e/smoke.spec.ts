@@ -56,6 +56,16 @@ test("sign in, create a kitchen and a recipe, scale and share it", async ({ page
   await expect(page.getByRole("button", { name: "Favorite" })).toHaveAttribute("aria-pressed", "true");
   await page.goto(recipeUrl);
 
+  // Picking a suggested tag while typing adds that tag, not the half-typed text.
+  await page.goto(recipeUrl + "/edit");
+  await page.getByRole("button", { name: "Remove tag breakfast" }).click();
+  await page.locator("#tag-input").fill("brea");
+  await page.getByRole("button", { name: "+ breakfast" }).click();
+  await expect(page.getByRole("button", { name: "Remove tag breakfast" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove tag brea", exact: true })).toHaveCount(0);
+  await expect(page.locator("#tag-input")).toHaveValue("");
+  await page.goto(recipeUrl);
+
   // Public link works without an account.
   await page.getByRole("button", { name: "Share" }).click();
   await page.getByRole("button", { name: "Create a public link" }).click();
