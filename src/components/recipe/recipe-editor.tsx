@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { saveRecipeAction } from "@/app/actions/recipes";
 import type { RecipeInput } from "@/lib/recipe-input";
 import { formatQuantity, parseQuantity } from "@/lib/scaler";
+import { slugify, suggestTags } from "@/lib/tags";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -280,11 +281,16 @@ function TagInput({ value, onChange, suggestions }: { value: string[]; onChange:
   const [draft, setDraft] = useState("");
   const suggestionList = useRef<HTMLDivElement>(null);
   const add = (raw: string) => {
-    const tag = raw.trim().toLowerCase().slice(0, 40);
+    const tag = slugify(raw);
     if (tag && !value.includes(tag)) onChange([...value, tag]);
     setDraft("");
   };
-  const remaining = suggestions.filter((s) => !value.includes(s) && s.includes(draft.trim().toLowerCase())).slice(0, 12);
+  const remaining = suggestTags(
+    suggestions.filter((s) => !value.includes(s)).map((name) => ({ name, count: 0 })),
+    draft,
+  )
+    .map((s) => s.name)
+    .slice(0, 12);
 
   return (
     <div>

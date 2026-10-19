@@ -3,6 +3,7 @@ import { and, asc, count, desc, eq, exists, ilike, inArray, or, sql } from "driz
 import { db, type Tx } from "@/db";
 import { favorites, ingredients, photos, recipes, recipeTags, steps, tags } from "@/db/schema";
 import type { RecipeInput } from "./recipe-input";
+import { slugify } from "./tags";
 
 export type FullRecipe = NonNullable<Awaited<ReturnType<typeof loadRecipe>>>;
 
@@ -76,7 +77,7 @@ export async function saveRecipe(kitchenId: string, input: RecipeInput, userId: 
 }
 
 async function ensureTags(tx: Tx, kitchenId: string, names: string[]) {
-  const unique = [...new Set(names.map((n) => n.trim().toLowerCase()).filter(Boolean))];
+  const unique = [...new Set(names.map(slugify).filter(Boolean))];
   if (!unique.length) return [];
   await tx
     .insert(tags)
@@ -158,6 +159,8 @@ export async function searchRecipes(
   const q = query.trim();
   if (q) {
     const pattern = `%${escapeLike(q)}%`;
+    // Tags are slugs: "plat princ" finds "plat-principal", "végé" finds "vegetarien".
+    const tagPattern = `%${escapeLike(slugify(q) || q)}%`;
     conditions.push(
       or(
         ilike(recipes.title, pattern),
@@ -167,7 +170,7 @@ export async function searchRecipes(
             .select({ one: sql`1` })
             .from(recipeTags)
             .innerJoin(tags, eq(tags.id, recipeTags.tagId))
-            .where(and(eq(recipeTags.recipeId, recipes.id), ilike(tags.name, pattern))),
+            .where(and(eq(recipeTags.recipeId, recipes.id), ilike(tags.name, tagPattern))),
         ),
       )!,
     );
@@ -179,7 +182,7 @@ export async function searchRecipes(
           .select({ one: sql`1` })
           .from(recipeTags)
           .innerJoin(tags, eq(tags.id, recipeTags.tagId))
-          .where(and(eq(recipeTags.recipeId, recipes.id), eq(tags.name, tag))),
+          .where(and(eq(recipeTags.recipeId, recipes.id), eq(tags.name, slugify(tag)))),
       ),
     );
   }

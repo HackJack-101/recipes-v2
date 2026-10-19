@@ -70,6 +70,10 @@ test("sign in, create a kitchen and a recipe, scale and share it", async ({ page
   await expect(page.getByRole("button", { name: "Remove tag breakfast" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Remove tag brea", exact: true })).toHaveCount(0);
   await expect(page.locator("#tag-input")).toHaveValue("");
+  // Typed tags become slugs.
+  await page.locator("#tag-input").fill("Petit Déjeuner");
+  await page.locator("#tag-input").press("Enter");
+  await expect(page.getByRole("button", { name: "Remove tag petit-dejeuner" })).toBeVisible();
   await page.goto(recipeUrl);
 
   // Public link works without an account.

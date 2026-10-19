@@ -9,8 +9,8 @@ describe.skipIf(!url)("recipes (database)", async () => {
   if (!url) return;
   process.env.DATABASE_URL = url;
   const { db } = await import("@/db");
-  const { setupDatabase } = await import("@/db/setup");
-  const { kitchens, tags, users } = await import("@/db/schema");
+  const { setupDatabase, slugifyTags } = await import("@/db/setup");
+  const { kitchens, recipeTags, tags, users } = await import("@/db/schema");
   const { isFavorite, kitchenTagCounts, kitchenTags, loadRecipe, saveRecipe, searchRecipes, setFavorite, toRecipeInput } =
     await import("./recipes");
   const { eq } = await import("drizzle-orm");
@@ -124,5 +124,33 @@ describe.skipIf(!url)("recipes (database)", async () => {
       ["Ratatouille", true],
       ["Clafoutis", false],
     ]);
+  });
+
+  it("converts tags saved before slugs, merging duplicates", async () => {
+    const cards = await searchRecipes(kitchenId, userId, "", null);
+    const id = (title: string) => cards.find((c) => c.title === title)!.id;
+    const legacy = await db
+      .insert(tags)
+      .values(["Plat principal", "plat principal", "Dessert"].map((name) => ({ kitchenId, name })))
+      .returning({ id: tags.id });
+    await db.insert(recipeTags).values([
+      { recipeId: id("Clafoutis"), tagId: legacy[0].id },
+      { recipeId: id("Clafoutis"), tagId: legacy[1].id },
+      { recipeId: id("Galettes"), tagId: legacy[1].id },
+      { recipeId: id("Galettes"), tagId: legacy[2].id },
+      { recipeId: id("Crêpes"), tagId: legacy[2].id }, // already tagged "dessert"
+    ]);
+
+    await slugifyTags();
+    await slugifyTags(); // idempotent
+    expect(await kitchenTagCounts(kitchenId)).toEqual([
+      { name: "dessert", count: 4 },
+      { name: "plat-principal", count: 2 },
+      { name: "savory", count: 2 },
+      { name: "french", count: 1 },
+      { name: "vegetarian", count: 1 },
+    ]);
+    expect((await searchRecipes(kitchenId, userId, "", "Plat principal")).map((r) => r.title)).toEqual(["Clafoutis", "Galettes"]);
+    expect((await searchRecipes(kitchenId, userId, "plat princ", null)).map((r) => r.title)).toEqual(["Clafoutis", "Galettes"]);
   });
 });
