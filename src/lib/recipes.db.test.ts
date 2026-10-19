@@ -11,8 +11,19 @@ describe.skipIf(!url)("recipes (database)", async () => {
   const { db } = await import("@/db");
   const { fillTagSlugs, setupDatabase } = await import("@/db/setup");
   const { kitchens, recipeTags, tags, users } = await import("@/db/schema");
-  const { isFavorite, kitchenTagCounts, kitchenTags, loadRecipe, saveRecipe, searchRecipes, setFavorite, toRecipeInput } =
-    await import("./recipes");
+  const {
+    checkedIngredients,
+    isFavorite,
+    kitchenTagCounts,
+    kitchenTags,
+    loadRecipe,
+    resetIngredientChecks,
+    saveRecipe,
+    searchRecipes,
+    setFavorite,
+    setIngredientChecked,
+    toRecipeInput,
+  } = await import("./recipes");
   const { eq } = await import("drizzle-orm");
 
   let kitchenId: string;
@@ -167,5 +178,29 @@ describe.skipIf(!url)("recipes (database)", async () => {
     expect(counts.find((t) => t.slug === "fete")).toMatchObject({ slug: "fete", count: 2 });
     expect(counts.filter((t) => t.slug === "fete")).toHaveLength(1);
     expect((await searchRecipes(kitchenId, userId, "", "fete")).map((r) => r.title)).toEqual(["Clafoutis", "Galettes"]);
+  });
+
+  it("keeps each user's ticked ingredients until reset or the recipe changes", async () => {
+    const id = await saveRecipe(kitchenId, { ...crepes, title: "Checklist" }, userId);
+    const other = await saveRecipe(kitchenId, { ...crepes, title: "Other" }, userId);
+    const [flour, salt] = (await loadRecipe({ id }))!.ingredients;
+    const [otherFlour] = (await loadRecipe({ id: other }))!.ingredients;
+
+    await setIngredientChecked(userId, id, flour.id, true);
+    await setIngredientChecked(userId, id, flour.id, true); // idempotent
+    await setIngredientChecked(userId, id, salt.id, true);
+    await setIngredientChecked(userId, id, otherFlour.id, true); // not this recipe's: ignored
+    await setIngredientChecked(userId, other, otherFlour.id, true);
+    expect((await checkedIngredients(userId, id)).sort()).toEqual([flour.id, salt.id].sort());
+
+    await setIngredientChecked(userId, id, salt.id, false);
+    expect(await checkedIngredients(userId, id)).toEqual([flour.id]);
+
+    await resetIngredientChecks(userId, id);
+    expect(await checkedIngredients(userId, id)).toEqual([]);
+    expect(await checkedIngredients(userId, other)).toEqual([otherFlour.id]);
+
+    await saveRecipe(kitchenId, { ...crepes, title: "Other" }, userId, other);
+    expect(await checkedIngredients(userId, other)).toEqual([]);
   });
 });

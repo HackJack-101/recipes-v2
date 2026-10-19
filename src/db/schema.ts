@@ -138,6 +138,21 @@ export const steps = pgTable(
   (t) => [index("steps_recipe_idx").on(t.recipeId)],
 );
 
+/** Ingredients a user has ticked off on a recipe. Editing the recipe recreates its ingredients, which clears these. */
+export const ingredientChecks = pgTable(
+  "ingredient_checks",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    ingredientId: uuid("ingredient_id")
+      .notNull()
+      .references(() => ingredients.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.ingredientId] })],
+);
+
 export const tags = pgTable(
   "tags",
   {

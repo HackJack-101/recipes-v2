@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, count, desc, eq, exists, ilike, inArray, or, sql } from "drizzle-orm";
 import { db, type Tx } from "@/db";
-import { favorites, ingredients, photos, recipes, recipeTags, steps, tags } from "@/db/schema";
+import { favorites, ingredientChecks, ingredients, photos, recipes, recipeTags, steps, tags } from "@/db/schema";
 import type { RecipeInput } from "./recipe-input";
 import { canonicalTags, tagSlug } from "./tags";
 
@@ -146,6 +146,45 @@ export async function isFavorite(userId: string, recipeId: string) {
 export async function setFavorite(userId: string, recipeId: string, favorite: boolean) {
   if (favorite) await db.insert(favorites).values({ userId, recipeId }).onConflictDoNothing();
   else await db.delete(favorites).where(and(eq(favorites.userId, userId), eq(favorites.recipeId, recipeId)));
+}
+
+/** Ids of the recipe's ingredients the user has ticked off. */
+export async function checkedIngredients(userId: string, recipeId: string) {
+  const rows = await db
+    .select({ id: ingredientChecks.ingredientId })
+    .from(ingredientChecks)
+    .innerJoin(ingredients, eq(ingredients.id, ingredientChecks.ingredientId))
+    .where(and(eq(ingredientChecks.userId, userId), eq(ingredients.recipeId, recipeId)));
+  return rows.map((r) => r.id);
+}
+
+export async function setIngredientChecked(userId: string, recipeId: string, ingredientId: string, checked: boolean) {
+  if (!checked) {
+    await db
+      .delete(ingredientChecks)
+      .where(and(eq(ingredientChecks.userId, userId), eq(ingredientChecks.ingredientId, ingredientId)));
+    return;
+  }
+  // Only ingredients of this recipe: the caller checked access to the recipe, not to the ingredient.
+  await db.execute(sql`
+    insert into ${ingredientChecks} (user_id, ingredient_id)
+    select ${userId}, ${ingredients.id} from ${ingredients}
+    where ${ingredients.id} = ${ingredientId} and ${ingredients.recipeId} = ${recipeId}
+    on conflict do nothing`);
+}
+
+export async function resetIngredientChecks(userId: string, recipeId: string) {
+  await db
+    .delete(ingredientChecks)
+    .where(
+      and(
+        eq(ingredientChecks.userId, userId),
+        inArray(
+          ingredientChecks.ingredientId,
+          db.select({ id: ingredients.id }).from(ingredients).where(eq(ingredients.recipeId, recipeId)),
+        ),
+      ),
+    );
 }
 
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);

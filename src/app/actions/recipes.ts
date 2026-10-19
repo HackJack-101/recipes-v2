@@ -5,13 +5,21 @@ import { and, eq, inArray, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { z } from "zod";
 import { db } from "@/db";
 import { photos, recipes } from "@/db/schema";
 import { requireKitchen, requireRecipe } from "@/lib/access";
 import { aiImportEnabled, extractRecipe, NoRecipeFound, type ImportSource } from "@/lib/ai-import";
 import { deletePhotoFile, storePhoto } from "@/lib/photos";
 import { recipeInput, type RecipeInput } from "@/lib/recipe-input";
-import { kitchenTags, pruneUnusedTags, saveRecipe, setFavorite } from "@/lib/recipes";
+import {
+  kitchenTags,
+  pruneUnusedTags,
+  resetIngredientChecks,
+  saveRecipe,
+  setFavorite,
+  setIngredientChecked,
+} from "@/lib/recipes";
 
 export type SaveResult = { error: string } | undefined;
 
@@ -87,6 +95,16 @@ export async function setFavoriteAction(recipeId: string, favorite: boolean) {
   await setFavorite(user.id, recipe.id, favorite);
   revalidatePath(`/kitchens/${recipe.kitchenId}`);
   revalidatePath(`/recipes/${recipe.id}`);
+}
+
+export async function setIngredientCheckedAction(recipeId: string, ingredientId: string, checked: boolean) {
+  const { user, recipe } = await requireRecipe(recipeId);
+  await setIngredientChecked(user.id, recipe.id, z.uuid().parse(ingredientId), checked);
+}
+
+export async function resetIngredientChecksAction(recipeId: string) {
+  const { user, recipe } = await requireRecipe(recipeId);
+  await resetIngredientChecks(user.id, recipe.id);
 }
 
 export type ImportResult = { recipe: RecipeInput } | { error: string };
