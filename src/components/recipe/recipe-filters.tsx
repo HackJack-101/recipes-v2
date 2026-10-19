@@ -3,21 +3,29 @@
 import { Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { suggestTags, type Tag } from "@/lib/tags";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
+/** How many tags show before "more", and how many suggestions while typing. */
+const VISIBLE_TAGS = 8;
+
 /** Tags come most used first; the count shows only for tags on several recipes. */
-export function RecipeFilters({ tags }: { tags: { name: string; count: number }[] }) {
+export function RecipeFilters({ tags }: { tags: Tag[] }) {
   const t = useTranslations("kitchen");
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const activeTag = params.get("tag");
   const [q, setQ] = useState(params.get("q") ?? "");
+  const [expanded, setExpanded] = useState(false);
   const [pending, startTransition] = useTransition();
+  // The search text last sent to the URL, so picking a suggestion doesn't send it again.
+  const sentQ = useRef(q);
 
-  const update = (next: { q?: string; tag?: string | null }) => {
+  const update = (next: { q?: string | null; tag?: string | null }) => {
+    if ("q" in next) sentQ.current = next.q ?? "";
     const sp = new URLSearchParams(params);
     for (const [k, v] of Object.entries(next)) {
       if (v) sp.set(k, v);
@@ -28,11 +36,27 @@ export function RecipeFilters({ tags }: { tags: { name: string; count: number }[
 
   // Debounce typing so every keystroke doesn't hit the server.
   useEffect(() => {
-    if (q === (params.get("q") ?? "")) return;
+    if (q === sentQ.current) return;
     const id = setTimeout(() => update({ q }), 250);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
+
+  const typing = q.trim() !== "";
+  let shown = typing ? suggestTags(tags, q).slice(0, VISIBLE_TAGS) : expanded ? tags : tags.slice(0, VISIBLE_TAGS);
+  const active = activeTag && tags.find((t) => t.name === activeTag);
+  if (active && !shown.includes(active)) shown = [active, ...shown];
+  const hidden = typing || expanded ? 0 : tags.length - shown.length;
+
+  // A suggestion replaces the text that found it.
+  const pickTag = (name: string) => {
+    if (typing) {
+      setQ("");
+      update({ tag: name, q: null });
+    } else {
+      update({ tag: name === activeTag ? null : name });
+    }
+  };
 
   return (
     <div className="mt-6 space-y-3">
@@ -47,7 +71,7 @@ export function RecipeFilters({ tags }: { tags: { name: string; count: number }[
           className={cn("pl-10", pending && "opacity-80")}
         />
       </div>
-      {tags.length > 0 && (
+      {(shown.length > 0 || activeTag) && (
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
           {activeTag && (
             <button
@@ -58,10 +82,10 @@ export function RecipeFilters({ tags }: { tags: { name: string; count: number }[
               {t("allTags")}
             </button>
           )}
-          {tags.map(({ name, count }) => (
+          {shown.map(({ name, count }) => (
             <button
               key={name}
-              onClick={() => update({ tag: name === activeTag ? null : name })}
+              onClick={() => pickTag(name)}
               aria-pressed={name === activeTag}
               className={cn(
                 "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm transition",
@@ -83,6 +107,15 @@ export function RecipeFilters({ tags }: { tags: { name: string; count: number }[
               )}
             </button>
           ))}
+          {(hidden > 0 || (expanded && !typing && tags.length > VISIBLE_TAGS)) && (
+            <button
+              onClick={() => setExpanded((e) => !e)}
+              aria-expanded={expanded}
+              className="inline-flex h-9 shrink-0 items-center rounded-full px-3 text-sm font-medium text-primary hover:bg-muted"
+            >
+              {expanded ? t("fewerTags") : t("moreTags", { count: hidden })}
+            </button>
+          )}
         </div>
       )}
     </div>
