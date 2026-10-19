@@ -104,17 +104,22 @@ Release tags must be semver (`v1.2.0` or `1.2.0`). Pushing a tag alone builds no
 
 ### Deploying releases to Portainer
 
-The `deploy` job runs `scripts/portainer-deploy.sh`. It finds the stack by name through the Portainer API, sets its `ghcr.io/hackjack-101/recipes-v2` image to the release version (for example `:1.2.0`), keeps the stack's environment variables, and redeploys it with a fresh pull. It works with stacks created in Portainer's **Web editor**.
+The `deploy` job calls the stack's Portainer webhook (Portainer Business Edition; the free 3-node licence is enough) with `?RECIPES_VERSION=<version>`. Portainer pulls the image and redeploys the stack; the job then polls `APP_URL/api/health` until it reports the new version, and fails after 10 minutes otherwise.
 
-1. In Portainer, open **My account** → **Access tokens** → **Add access token**, and copy the token.
-2. In GitHub, open **Settings** → **Environments** → **New environment** and name it `production`. Optionally add yourself as a required reviewer to approve each deploy.
-3. In that environment (or in the repository's **Secrets and variables** → **Actions**), add:
+1. In Portainer, open the stack's **Editor** and set the app image to:
+   ```yaml
+   image: ghcr.io/hackjack-101/recipes-v2:${RECIPES_VERSION:-stable}
+   ```
+   Remove `RECIPES_VERSION` from the stack's environment variables, so the value sent by the webhook is the one used. A manual redeploy without it runs `stable`, the latest release.
+2. Still in the **Editor**, turn on **Create a Stack webhook** and copy its URL.
+3. In GitHub, open **Settings** → **Environments** → **New environment** and name it `production`. Optionally add yourself as a required reviewer to approve each deploy.
+4. In that environment, add:
 
    | Name | Kind | Value |
    | --- | --- | --- |
-   | `PORTAINER_URL` | variable | `https://portainer.example.com` |
-   | `PORTAINER_STACK` | variable | Stack name (optional, default `recipes`) |
-   | `PORTAINER_TOKEN` | secret | The access token |
-   | `PORTAINER_BASIC_AUTH` | secret | `user:password`, only if a proxy puts basic auth in front of Portainer |
+   | `PORTAINER_WEBHOOK_URL` | secret | The webhook URL. Anyone who has it can redeploy the stack. |
+   | `APP_URL` | variable | The app's public URL, such as `https://recipes.example.com` (optional: enables the version check) |
 
-To roll back, re-run the `deploy` job of an earlier release, or set the image tag in the stack's editor.
+If a proxy puts basic auth in front of Portainer, exempt `/api/stacks/webhooks/` from it: the webhook's id is its secret.
+
+To roll back, re-run the `deploy` job of an earlier release.
