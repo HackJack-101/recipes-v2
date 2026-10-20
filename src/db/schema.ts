@@ -38,6 +38,22 @@ export const sessions = pgTable("sessions", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
 
+export const passwordResets = pgTable(
+  "password_resets",
+  {
+    id: id(),
+    // sha256 of the emailed token, never the token itself
+    tokenHash: text("token_hash").notNull().unique(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+  },
+  (t) => [index("password_resets_user_idx").on(t.userId)],
+);
+
 export const kitchens = pgTable("kitchens", {
   id: id(),
   name: text("name").notNull(),
