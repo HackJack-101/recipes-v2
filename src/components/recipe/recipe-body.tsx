@@ -1,25 +1,55 @@
 "use client";
 
-import { Minus, Plus, Users } from "lucide-react";
+import { Check, Minus, Plus, RotateCcw, Users } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
+import { resetIngredientChecksAction, setIngredientCheckedAction } from "@/app/actions/recipes";
 import { MULTIPLIERS, scaleFactor, scaleQuantity } from "@/lib/scaler";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 type Props = {
   servings: number | null;
-  ingredients: { quantity: number | null; unit: string; name: string }[];
+  ingredients: { id: string; quantity: number | null; unit: string; name: string }[];
   steps: string[];
+  /** Saves ticked ingredients for the signed-in user. Without it (public page) they're kept in the page only. */
+  checklist?: { recipeId: string; checked: string[] };
 };
 
 /** Ingredients (with the guest scaler) beside the steps on large screens, stacked on phones. */
-export function RecipeBody({ servings, ingredients, steps }: Props) {
+export function RecipeBody({ servings, ingredients, steps, checklist }: Props) {
   const t = useTranslations("recipe");
   const locale = useLocale();
   const [guests, setGuests] = useState(servings ?? 1);
   const factor = scaleFactor(servings, guests);
   const [done, setDone] = useState<Set<number>>(new Set());
+
+  const [checked, setChecked] = useState(() => new Set(checklist?.checked));
+  const [, startTransition] = useTransition();
+
+  const save = (action: () => Promise<void>, previous: Set<string>) =>
+    startTransition(async () => {
+      try {
+        await action();
+      } catch {
+        setChecked(previous);
+        toast.error(t("checkError"));
+      }
+    });
+
+  const toggleIngredient = (id: string) => {
+    const next = new Set(checked);
+    const on = !next.delete(id);
+    if (on) next.add(id);
+    setChecked(next);
+    if (checklist) save(() => setIngredientCheckedAction(checklist.recipeId, id, on), checked);
+  };
+
+  const resetIngredients = () => {
+    setChecked(new Set());
+    if (checklist) save(() => resetIngredientChecksAction(checklist.recipeId), checked);
+  };
 
   const toggleStep = (i: number) =>
     setDone((prev) => {
@@ -32,9 +62,22 @@ export function RecipeBody({ servings, ingredients, steps }: Props) {
     <div className="print-full mt-8 grid gap-8 lg:grid-cols-[minmax(280px,360px)_1fr] lg:gap-12">
       <section aria-labelledby="ingredients" className="lg:self-start">
         <div className="print-static rounded-2xl border bg-card p-5 shadow-sm lg:sticky lg:top-24">
-          <h2 id="ingredients" className="text-xl font-semibold">
-            {t("ingredients")}
-          </h2>
+          <div className="flex min-h-9 items-center justify-between gap-2">
+            <h2 id="ingredients" className="text-xl font-semibold">
+              {t("ingredients")}
+            </h2>
+            {checked.size > 0 && (
+              <div className="no-print flex items-center gap-1">
+                <span className="text-sm tabular-nums text-muted-foreground">
+                  {t("checkedCount", { checked: checked.size, total: ingredients.length })}
+                </span>
+                <Button variant="ghost" size="sm" onClick={resetIngredients} className="text-muted-foreground">
+                  <RotateCcw />
+                  {t("resetChecks")}
+                </Button>
+              </div>
+            )}
+          </div>
 
           <div className="no-print mt-4">
             {servings ? (
@@ -87,14 +130,35 @@ export function RecipeBody({ servings, ingredients, steps }: Props) {
             <p className="mt-4 text-sm text-muted-foreground">{t("noIngredients")}</p>
           ) : (
             <ul className="mt-4 divide-y">
-              {ingredients.map((i, n) => {
+              {ingredients.map((i) => {
                 const qty = scaleQuantity(i.quantity, factor, locale);
+                const on = checked.has(i.id);
                 return (
-                  <li key={n} className="flex gap-3 py-2.5 leading-snug">
-                    <span className="min-w-16 shrink-0 font-semibold tabular-nums text-primary">
-                      {[qty, i.unit].filter(Boolean).join(" ")}
-                    </span>
-                    <span>{i.name}</span>
+                  <li key={i.id}>
+                    <label className="group flex cursor-pointer items-start gap-3 py-2.5 leading-snug select-none">
+                      <input type="checkbox" checked={on} onChange={() => toggleIngredient(i.id)} className="peer sr-only" />
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "mt-px grid size-5 shrink-0 place-items-center rounded-md border-2 border-primary/50 transition-all duration-150",
+                          "group-hover:border-primary peer-focus-visible:ring-4 peer-focus-visible:ring-ring",
+                          on && "scale-105 border-primary bg-primary text-primary-foreground",
+                        )}
+                      >
+                        <Check strokeWidth={3.5} className={cn("size-3.5 transition-transform duration-150", on ? "scale-100" : "scale-0")} />
+                      </span>
+                      <span
+                        className={cn(
+                          "min-w-16 shrink-0 font-semibold tabular-nums text-primary transition-opacity",
+                          on && "opacity-45",
+                        )}
+                      >
+                        {[qty, i.unit].filter(Boolean).join(" ")}
+                      </span>
+                      <span className={cn("transition-opacity", on && "text-muted-foreground line-through decoration-primary/60 opacity-70")}>
+                        {i.name}
+                      </span>
+                    </label>
                   </li>
                 );
               })}

@@ -48,6 +48,18 @@ test("sign in, create a kitchen and a recipe, scale and share it", async ({ page
   await page.getByRole("button", { name: "Fewer guests" }).click();
   await expect(page.getByText("½ cup")).toBeVisible();
 
+  // Ticked ingredients are saved for this user until reset.
+  const flour = page.getByRole("checkbox", { name: /flour/ });
+  const saved = () => page.waitForResponse((r) => r.request().method() === "POST" && r.url() === page.url());
+  await Promise.all([saved(), flour.check({ force: true })]);
+  await expect(page.getByText("1/1")).toBeVisible();
+  await page.reload();
+  await expect(flour).toBeChecked();
+  await Promise.all([saved(), page.getByRole("button", { name: "Reset" }).click()]);
+  await expect(flour).not.toBeChecked();
+  await page.reload();
+  await expect(flour).not.toBeChecked();
+
   // Favorite: starred on the recipe, shown on its card in the kitchen.
   await page.getByRole("button", { name: "Favorite" }).click();
   await expect(page.getByRole("button", { name: "Favorite" })).toHaveAttribute("aria-pressed", "true");
