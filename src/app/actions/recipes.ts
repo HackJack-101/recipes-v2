@@ -14,6 +14,7 @@ import { deletePhotoFile, storePhoto } from "@/lib/photos";
 import { recipeInput, type RecipeInput } from "@/lib/recipe-input";
 import {
   kitchenTags,
+  logCook,
   pruneUnusedTags,
   resetIngredientChecks,
   saveRecipe,
@@ -105,6 +106,12 @@ export async function setIngredientCheckedAction(recipeId: string, ingredientId:
 export async function resetIngredientChecksAction(recipeId: string) {
   const { user, recipe } = await requireRecipe(recipeId);
   await resetIngredientChecks(user.id, recipe.id);
+}
+
+export async function markCookedAction(recipeId: string) {
+  const { user, recipe } = await requireRecipe(recipeId);
+  await logCook(user.id, recipe.id);
+  revalidatePath(`/recipes/${recipe.id}`);
 }
 
 export type ImportResult = { recipe: RecipeInput } | { error: string };

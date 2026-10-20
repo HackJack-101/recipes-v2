@@ -116,7 +116,7 @@ export function RecipeEditor({ target, initial, existingPhotos = [], kitchenTags
         <TagInput value={tags} onChange={setTags} suggestions={kitchenTags} />
       </Card>
 
-      <Card className="p-5 sm:p-6">
+      <Card id="photos" className="scroll-mt-24 p-5 sm:p-6">
         <h2 className="text-xl font-semibold">{t("photos")}</h2>
         <PhotoPicker
           kept={kept}

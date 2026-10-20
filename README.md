@@ -27,6 +27,7 @@ Database migrations run automatically when the container starts. Data lives in t
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` | First super admin, created only if no user exists. |
 | `ANTHROPIC_API_KEY` | Enables AI import. Without it the import button is hidden. |
 | `ANTHROPIC_MODEL` | Claude model used for import (default `claude-opus-5-5`). |
+| `TIME_ZONE` | Time zone for dates shown in the app, e.g. when a recipe was last made (default `Europe/Paris`). |
 | `RECIPES_VERSION` | Image tag to run (default `latest`). |
 | `PORT` | Host port (default `3000`). |
 

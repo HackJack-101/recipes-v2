@@ -153,6 +153,22 @@ export const ingredientChecks = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.ingredientId] })],
 );
 
+/** One row each time a user cooks a recipe. */
+export const recipeCooks = pgTable(
+  "recipe_cooks",
+  {
+    id: id(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipeId: uuid("recipe_id")
+      .notNull()
+      .references(() => recipes.id, { onDelete: "cascade" }),
+    cookedAt: timestamp("cooked_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("recipe_cooks_user_recipe_idx").on(t.userId, t.recipeId)],
+);
+
 export const tags = pgTable(
   "tags",
   {
