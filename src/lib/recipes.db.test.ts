@@ -9,8 +9,8 @@ describe.skipIf(!url)("recipes (database)", async () => {
   if (!url) return;
   process.env.DATABASE_URL = url;
   const { db } = await import("@/db");
-  const { setupDatabase } = await import("@/db/setup");
-  const { kitchens, tags, users } = await import("@/db/schema");
+  const { fillTagSlugs, setupDatabase } = await import("@/db/setup");
+  const { kitchens, recipeTags, tags, users } = await import("@/db/schema");
   const { isFavorite, kitchenTagCounts, kitchenTags, loadRecipe, saveRecipe, searchRecipes, setFavorite, toRecipeInput } =
     await import("./recipes");
   const { eq } = await import("drizzle-orm");
@@ -79,10 +79,10 @@ describe.skipIf(!url)("recipes (database)", async () => {
     await saveRecipe(kitchenId, { ...crepes, title: "Clafoutis", tags: ["dessert", "savory"] }, userId);
     await saveRecipe(kitchenId, { ...crepes, title: "Far breton", tags: ["dessert"] }, userId);
     expect(await kitchenTagCounts(kitchenId)).toEqual([
-      { name: "dessert", count: 3 },
-      { name: "savory", count: 2 },
-      { name: "french", count: 1 },
-      { name: "vegetarian", count: 1 },
+      { name: "dessert", slug: "dessert", count: 3 },
+      { name: "savory", slug: "savory", count: 2 },
+      { name: "french", slug: "french", count: 1 },
+      { name: "vegetarian", slug: "vegetarian", count: 1 },
     ]);
   });
 
@@ -124,5 +124,48 @@ describe.skipIf(!url)("recipes (database)", async () => {
       ["Ratatouille", true],
       ["Clafoutis", false],
     ]);
+  });
+
+  it("matches tags by slug and keeps the first spelling", async () => {
+    const id = await saveRecipe(kitchenId, { ...crepes, title: "Tarte", tags: ["Plat principal", "Végé"] }, userId);
+    await saveRecipe(kitchenId, { ...crepes, title: "Quiche", tags: ["plat-principal", "VEGE"] }, userId);
+    expect((await loadRecipe({ id }))?.tags).toEqual(["Plat principal", "Végé"]);
+    const [quiche] = await searchRecipes(kitchenId, userId, "quiche", null);
+    expect(quiche.tags).toEqual(["Plat principal", "Végé"]);
+    const titles = async (q: string, tag: string | null) => (await searchRecipes(kitchenId, userId, q, tag)).map((r) => r.title);
+    expect(await titles("", "plat-principal")).toEqual(["Quiche", "Tarte"]);
+    expect(await titles("", "Plat principal")).toEqual(["Quiche", "Tarte"]);
+    expect(await titles("plat princ", null)).toEqual(["Quiche", "Tarte"]);
+    expect(await titles("", "végé")).toEqual(["Quiche", "Tarte"]);
+    expect(await titles("vege", null)).toEqual(expect.arrayContaining(["Quiche", "Tarte"]));
+    expect((await kitchenTagCounts(kitchenId)).find((t) => t.slug === "plat-principal")).toEqual({
+      name: "Plat principal",
+      slug: "plat-principal",
+      count: 2,
+    });
+  });
+
+  it("fills in slugs for tags created before them, merging duplicates", async () => {
+    const cards = await searchRecipes(kitchenId, userId, "", null);
+    const id = (title: string) => cards.find((c) => c.title === title)!.id;
+    const legacy = await db
+      .insert(tags)
+      .values(["Fête", "fête", "Dessert"].map((name) => ({ kitchenId, name })))
+      .returning({ id: tags.id });
+    await db.insert(recipeTags).values([
+      { recipeId: id("Clafoutis"), tagId: legacy[0].id },
+      { recipeId: id("Clafoutis"), tagId: legacy[1].id },
+      { recipeId: id("Galettes"), tagId: legacy[1].id },
+      { recipeId: id("Galettes"), tagId: legacy[2].id },
+      { recipeId: id("Crêpes"), tagId: legacy[2].id }, // already tagged "dessert"
+    ]);
+
+    await fillTagSlugs();
+    await fillTagSlugs(); // idempotent
+    const counts = await kitchenTagCounts(kitchenId);
+    expect(counts.find((t) => t.slug === "dessert")).toEqual({ name: "dessert", slug: "dessert", count: 4 });
+    expect(counts.find((t) => t.slug === "fete")).toMatchObject({ slug: "fete", count: 2 });
+    expect(counts.filter((t) => t.slug === "fete")).toHaveLength(1);
+    expect((await searchRecipes(kitchenId, userId, "", "fete")).map((r) => r.title)).toEqual(["Clafoutis", "Galettes"]);
   });
 });

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { saveRecipeAction } from "@/app/actions/recipes";
 import type { RecipeInput } from "@/lib/recipe-input";
 import { formatQuantity, parseQuantity } from "@/lib/scaler";
+import { canonicalTags, suggestTags, tagSlug } from "@/lib/tags";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -279,12 +280,19 @@ function TagInput({ value, onChange, suggestions }: { value: string[]; onChange:
   const t = useTranslations("editor");
   const [draft, setDraft] = useState("");
   const suggestionList = useRef<HTMLDivElement>(null);
+  // A tag typed differently from an existing one ("plat principal") reuses its spelling ("Plat principal").
   const add = (raw: string) => {
-    const tag = raw.trim().toLowerCase().slice(0, 40);
-    if (tag && !value.includes(tag)) onChange([...value, tag]);
+    const next = canonicalTags([...value, raw], suggestions);
+    if (next.length > value.length) onChange(next);
     setDraft("");
   };
-  const remaining = suggestions.filter((s) => !value.includes(s) && s.includes(draft.trim().toLowerCase())).slice(0, 12);
+  const taken = new Set(value.map(tagSlug));
+  const remaining = suggestTags(
+    suggestions.filter((s) => !taken.has(tagSlug(s))).map((name) => ({ name })),
+    draft,
+  )
+    .map((s) => s.name)
+    .slice(0, 12);
 
   return (
     <div>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { FullRecipe } from "@/lib/recipes";
 import { formatDuration } from "@/lib/format";
+import { tagSlug } from "@/lib/tags";
 import { Badge } from "@/components/ui/card";
 import { PhotoGallery } from "./photo-gallery";
 
@@ -33,7 +34,7 @@ export async function RecipeHeader({ recipe, photoQuery = "", linkTags = false }
             linkTags ? (
               <Link
                 key={tag}
-                href={`/kitchens/${recipe.kitchenId}?${new URLSearchParams({ tag })}`}
+                href={`/kitchens/${recipe.kitchenId}?${new URLSearchParams({ tag: tagSlug(tag) })}`}
                 title={t("tagRecipes", { tag })}
                 className="rounded-full transition hover:ring-2 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >

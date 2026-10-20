@@ -4,7 +4,7 @@ import { Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { suggestTags, type Tag } from "@/lib/tags";
+import { suggestTags, tagSlug, type Tag } from "@/lib/tags";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
@@ -17,7 +17,9 @@ export function RecipeFilters({ tags }: { tags: Tag[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const activeTag = params.get("tag");
+  // A slug, though a tag's name from an older link works too.
+  const activeParam = params.get("tag");
+  const activeTag = activeParam && tagSlug(activeParam);
   const [q, setQ] = useState(params.get("q") ?? "");
   const [expanded, setExpanded] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -44,17 +46,17 @@ export function RecipeFilters({ tags }: { tags: Tag[] }) {
 
   const typing = q.trim() !== "";
   let shown = typing ? suggestTags(tags, q).slice(0, VISIBLE_TAGS) : expanded ? tags : tags.slice(0, VISIBLE_TAGS);
-  const active = activeTag && tags.find((t) => t.name === activeTag);
+  const active = activeTag && tags.find((t) => t.slug === activeTag);
   if (active && !shown.includes(active)) shown = [active, ...shown];
   const hidden = typing || expanded ? 0 : tags.length - shown.length;
 
   // A suggestion replaces the text that found it.
-  const pickTag = (name: string) => {
+  const pickTag = (slug: string) => {
     if (typing) {
       setQ("");
-      update({ tag: name, q: null });
+      update({ tag: slug, q: null });
     } else {
-      update({ tag: name === activeTag ? null : name });
+      update({ tag: slug === activeTag ? null : slug });
     }
   };
 
@@ -82,14 +84,14 @@ export function RecipeFilters({ tags }: { tags: Tag[] }) {
               {t("allTags")}
             </button>
           )}
-          {shown.map(({ name, count }) => (
+          {shown.map(({ name, slug, count }) => (
             <button
-              key={name}
-              onClick={() => pickTag(name)}
-              aria-pressed={name === activeTag}
+              key={slug}
+              onClick={() => pickTag(slug)}
+              aria-pressed={slug === activeTag}
               className={cn(
                 "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm transition",
-                name === activeTag
+                slug === activeTag
                   ? "border-primary bg-primary text-primary-foreground"
                   : "bg-card hover:bg-muted",
               )}
@@ -99,7 +101,7 @@ export function RecipeFilters({ tags }: { tags: Tag[] }) {
                 <span
                   className={cn(
                     "rounded-full px-1.5 text-xs font-medium tabular-nums",
-                    name === activeTag ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground",
+                    slug === activeTag ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground",
                   )}
                 >
                   {count}
