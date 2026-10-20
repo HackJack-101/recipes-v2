@@ -77,7 +77,7 @@
     "roleMember": "Member",
     "roleOwner": "Owner",
     "add": "Add",
-    "invites": "Invite links",
+    "invites": "Invites",
     "invitesDescription": "Whoever opens the link can create an account, or use theirs, and joins as a member. Each link works once, within 24 hours.",
     "createInvite": "Create an invite link",
     "createAnotherInvite": "Create another link",
@@ -91,7 +91,15 @@
     "pendingInvite": "Created by {name} · expires in {hours} h",
     "revokeInvite": "Revoke",
     "moreTags": "+{count} more",
-    "fewerTags": "Show less"
+    "fewerTags": "Show less",
+    "emailInvite": "Invite by email",
+    "emailInvitePlaceholder": "name@example.com",
+    "sendInvite": "Send",
+    "emailInviteSent": "Invite sent to {email}",
+    "emailInviteInvalid": "Enter a valid email address.",
+    "emailInviteMember": "{email} is already a member of this kitchen.",
+    "emailInviteFailed": "Couldn't send the email. Try again later, or share a link instead.",
+    "pendingEmailInvite": "Sent to {email} by {name} · expires in {hours} h"
   },
   "recipe": {
     "ingredients": "Ingredients",
@@ -265,6 +273,12 @@
     "resetBody": "Someone, hopefully you, asked to reset the password of the account {email}.",
     "resetAction": "Choose a new password",
     "resetExpiry": "This link works once and expires in {minutes} minutes.",
-    "resetIgnore": "If you didn't ask for it, ignore this email: your password stays the same."
+    "resetIgnore": "If you didn't ask for it, ignore this email: your password stays the same.",
+    "inviteSubject": "{inviter} invites you to the kitchen “{kitchen}”",
+    "inviteHeading": "Join “{kitchen}”",
+    "inviteBody": "{inviter} invites you to share family recipes in the kitchen “{kitchen}” on {app}. Create your account, or sign in if you have one, to join.",
+    "inviteAction": "Accept the invitation",
+    "inviteExpiry": "This link works once and expires in {hours} hours.",
+    "inviteIgnore": "If you don't know {inviter}, you can ignore this email."
   }
 }

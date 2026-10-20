@@ -63,7 +63,7 @@ export default async function InvitePage({ params }: Props) {
                 <JoinInvite token={token} userName={user.name} />
               ) : (
                 <>
-                  <SignUpForm token={token} />
+                  <SignUpForm token={token} email={invite.email} />
                   <p className="mt-5 text-center text-sm text-muted-foreground">
                     {t("invite.haveAccount")}{" "}
                     <Link href={`/login?next=${encodeURIComponent(`/invite/${token}`)}`} className="font-medium text-primary underline-offset-4 hover:underline">

@@ -1,15 +1,15 @@
 "use client";
 
-import { Copy, Link2, Share } from "lucide-react";
+import { Copy, Link2, MailCheck, Send, Share } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useSyncExternalStore, useTransition } from "react";
+import { useActionState, useState, useSyncExternalStore, useTransition } from "react";
 import { toast } from "sonner";
-import { createInviteAction, revokeInviteAction } from "@/app/actions/invites";
+import { createInviteAction, emailInviteAction, revokeInviteAction } from "@/app/actions/invites";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input, Label } from "@/components/ui/input";
 
-type Invite = { id: string; createdByName: string | null; hoursLeft: number };
+type Invite = { id: string; email: string | null; createdByName: string | null; hoursLeft: number };
 
 const noop = () => () => {};
 
@@ -17,10 +17,13 @@ export function InviteLinks({
   kitchen,
   invites,
   appUrl,
+  canEmail,
 }: {
   kitchen: { id: string; name: string };
   invites: Invite[];
   appUrl: string;
+  /** Whether the server can send emails (SMTP configured). */
+  canEmail: boolean;
 }) {
   const t = useTranslations("kitchen");
   const [url, setUrl] = useState<string | null>(null);
@@ -49,6 +52,8 @@ export function InviteLinks({
     <Card className="p-5 sm:p-6">
       <h2 className="text-xl font-semibold">{t("invites")}</h2>
       <p className="mt-1 text-sm text-muted-foreground">{t("invitesDescription")}</p>
+
+      {canEmail && <EmailInvite kitchenId={kitchen.id} />}
 
       {url && (
         <div className="mt-4 rounded-xl border bg-muted/40 p-3">
@@ -79,7 +84,9 @@ export function InviteLinks({
             {invites.map((i) => (
               <li key={i.id} className="flex items-center justify-between gap-3 py-2.5">
                 <span className="text-sm text-muted-foreground">
-                  {t("pendingInvite", { name: i.createdByName ?? "—", hours: i.hoursLeft })}
+                  {i.email
+                    ? t("pendingEmailInvite", { email: i.email, name: i.createdByName ?? "—", hours: i.hoursLeft })
+                    : t("pendingInvite", { name: i.createdByName ?? "—", hours: i.hoursLeft })}
                 </span>
                 <Button variant="ghost" size="sm" disabled={pending} onClick={() => revoke(i.id)} className="text-destructive">
                   {t("revokeInvite")}
@@ -90,5 +97,43 @@ export function InviteLinks({
         </div>
       )}
     </Card>
+  );
+}
+
+function EmailInvite({ kitchenId }: { kitchenId: string }) {
+  const t = useTranslations("kitchen");
+  const [state, action, pending] = useActionState(emailInviteAction.bind(null, kitchenId), undefined);
+  return (
+    <form action={action} className="mt-4 border-b pb-5">
+      <Label htmlFor="invite-email">{t("emailInvite")}</Label>
+      <div className="flex gap-2">
+        <Input
+          // A new form after each send: empty once sent, the typed address kept on error.
+          key={state?.at ?? state?.error}
+          id="invite-email"
+          name="email"
+          type="email"
+          autoComplete="off"
+          placeholder={t("emailInvitePlaceholder")}
+          defaultValue={state?.error ? state.email : ""}
+          required
+        />
+        <Button type="submit" disabled={pending} className="shrink-0">
+          <Send />
+          {t("sendInvite")}
+        </Button>
+      </div>
+      {state?.error && (
+        <p role="alert" className="mt-2 text-sm text-destructive">
+          {state.error}
+        </p>
+      )}
+      {state?.sentTo && (
+        <p role="status" className="mt-2 flex items-center gap-1.5 text-sm text-primary">
+          <MailCheck className="size-4" />
+          {t("emailInviteSent", { email: state.sentTo })}
+        </p>
+      )}
+    </form>
   );
 }

@@ -140,6 +140,27 @@ test("sign in, create a kitchen and a recipe, scale and share it", async ({ page
   await expect(newcomerPage.getByText(`Pancakes ${suffix}`)).toBeVisible();
   await newcomer.close();
 
+  // Invite by email: the guest gets the link by email, with their address filled in.
+  const guestEmail = `guest-${suffix}@test.local`;
+  await page.getByLabel("Invite by email").fill(guestEmail);
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: `Invite sent to ${guestEmail}` })).toBeVisible();
+  await expect(page.getByText(`Sent to ${guestEmail} by Admin`)).toBeVisible();
+  const inviteMail = await waitForMail(request, guestEmail, /Admin invites you to the kitchen “Kitchen /);
+  const emailed = await browser.newContext();
+  const emailedPage = await emailed.newPage();
+  await emailedPage.goto(linkIn(inviteMail, /^\/invite\//));
+  await expect(emailedPage.getByLabel("Email")).toHaveValue(guestEmail);
+  await emailedPage.getByLabel("Your name").fill("Guest");
+  await emailedPage.getByLabel("Password").fill("guest-pass-123");
+  await emailedPage.getByRole("button", { name: "Create my account and join" }).click();
+  await expect(emailedPage).toHaveURL(kitchenUrl);
+  await emailed.close();
+  // Members can't be invited again.
+  await page.getByLabel("Invite by email").fill(guestEmail);
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "already a member" })).toBeVisible();
+
   // Forgot password: the newcomer gets an email, sets a new password and is signed in.
   const forgetful = await browser.newContext();
   const forgetfulPage = await forgetful.newPage();

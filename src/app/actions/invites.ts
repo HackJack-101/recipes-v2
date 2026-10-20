@@ -3,13 +3,16 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { kitchenMembers, users } from "@/db/schema";
 import { isUuid, requireKitchen } from "@/lib/access";
 import { createSession, requireUser } from "@/lib/auth";
-import { createInvite, findInvite, redeemInvite, revokeInvite } from "@/lib/invites";
+import { appUrl, emailEnabled, emailTranslator, sendEmail } from "@/lib/email";
+import { inviteEmail } from "@/lib/email-templates";
+import { createInvite, findInvite, INVITE_HOURS, redeemInvite, revokeInvite } from "@/lib/invites";
+import { isLocale } from "@/i18n/config";
 import { hashPassword } from "@/lib/password";
 import type { FormState } from "./auth";
 
@@ -18,6 +21,51 @@ export async function createInviteAction(kitchenId: string) {
   const { token } = await createInvite(kitchenId, user.id);
   revalidatePath(`/kitchens/${kitchenId}/settings`);
   return token;
+}
+
+export type EmailInviteState = { error?: string; email?: string; sentTo?: string; at?: number } | undefined;
+
+/** Emails a single-use invite link. Written in the inviter's language. */
+export async function emailInviteAction(kitchenId: string, _: EmailInviteState, formData: FormData): Promise<EmailInviteState> {
+  const { user, kitchen } = await requireKitchen(kitchenId, { manage: true });
+  const t = await getTranslations("kitchen");
+  if (!emailEnabled()) return { error: t("emailInviteFailed") };
+  const email = z.email().safeParse(String(formData.get("email") ?? "").trim().toLowerCase());
+  const typed = String(formData.get("email") ?? "");
+  if (!email.success) return { error: t("emailInviteInvalid"), email: typed };
+
+  const [member] = await db
+    .select({ id: users.id })
+    .from(kitchenMembers)
+    .innerJoin(users, eq(users.id, kitchenMembers.userId))
+    .where(and(eq(kitchenMembers.kitchenId, kitchen.id), eq(users.email, email.data)));
+  if (member) return { error: t("emailInviteMember", { email: email.data }), email: typed };
+
+  const invite = await createInvite(kitchen.id, user.id, email.data);
+  const locale = await getLocale();
+  const [te, base, tApp] = await Promise.all([
+    emailTranslator(isLocale(locale) ? locale : "en"),
+    appUrl(),
+    getTranslations("app"),
+  ]);
+  try {
+    await sendEmail(
+      email.data,
+      inviteEmail(te, {
+        url: `${base}/invite/${invite.token}`,
+        inviter: user.name,
+        kitchen: kitchen.name,
+        appName: tApp("name"),
+        hours: INVITE_HOURS,
+      }),
+    );
+  } catch (err) {
+    console.error("[email] invite:", err);
+    await revokeInvite(kitchen.id, invite.id);
+    return { error: t("emailInviteFailed"), email: typed };
+  }
+  revalidatePath(`/kitchens/${kitchen.id}/settings`);
+  return { sentTo: email.data, at: Date.now() };
 }
 
 export async function revokeInviteAction(kitchenId: string, inviteId: string) {

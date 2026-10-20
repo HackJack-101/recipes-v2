@@ -80,6 +80,8 @@ export const kitchenInvites = pgTable(
     id: id(),
     // sha256 of the link token, never the token itself
     tokenHash: text("token_hash").notNull().unique(),
+    /** Who the link was emailed to; null for links shared by hand. */
+    email: text("email"),
     kitchenId: uuid("kitchen_id")
       .notNull()
       .references(() => kitchens.id, { onDelete: "cascade" }),
