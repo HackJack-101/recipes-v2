@@ -7,7 +7,7 @@ import { acceptInviteAction, signUpWithInviteAction } from "@/app/actions/invite
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
-export function SignUpForm({ token }: { token: string }) {
+export function SignUpForm({ token, email }: { token: string; email?: string | null }) {
   const t = useTranslations("invite");
   const [state, action, pending] = useActionState(signUpWithInviteAction.bind(null, token), undefined);
   return (
@@ -18,7 +18,7 @@ export function SignUpForm({ token }: { token: string }) {
       </div>
       <div>
         <Label htmlFor="email">{t("email")}</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+        <Input id="email" name="email" type="email" autoComplete="email" defaultValue={email ?? ""} required />
       </div>
       <div>
         <Label htmlFor="password">{t("password")}</Label>

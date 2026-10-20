@@ -77,7 +77,7 @@
     "roleMember": "Membre",
     "roleOwner": "Propriétaire",
     "add": "Ajouter",
-    "invites": "Liens d’invitation",
+    "invites": "Invitations",
     "invitesDescription": "La personne qui ouvre le lien crée un compte, ou utilise le sien, et rejoint la cuisine comme membre. Chaque lien ne sert qu’une fois, pendant 24 heures.",
     "createInvite": "Créer un lien d’invitation",
     "createAnotherInvite": "Créer un autre lien",
@@ -91,7 +91,15 @@
     "pendingInvite": "Créé par {name} · expire dans {hours} h",
     "revokeInvite": "Révoquer",
     "moreTags": "+{count} autres",
-    "fewerTags": "Voir moins"
+    "fewerTags": "Voir moins",
+    "emailInvite": "Inviter par e-mail",
+    "emailInvitePlaceholder": "nom@exemple.fr",
+    "sendInvite": "Envoyer",
+    "emailInviteSent": "Invitation envoyée à {email}",
+    "emailInviteInvalid": "Saisissez une adresse e-mail valide.",
+    "emailInviteMember": "{email} est déjà membre de cette cuisine.",
+    "emailInviteFailed": "Impossible d'envoyer l'e-mail. Réessayez plus tard ou partagez plutôt un lien.",
+    "pendingEmailInvite": "Envoyé à {email} par {name} · expire dans {hours} h"
   },
   "recipe": {
     "ingredients": "Ingrédients",
@@ -265,6 +273,12 @@
     "resetBody": "Quelqu'un, vous on l'espère, a demandé à réinitialiser le mot de passe du compte {email}.",
     "resetAction": "Choisir un nouveau mot de passe",
     "resetExpiry": "Ce lien ne fonctionne qu'une fois et expire dans {minutes} minutes.",
-    "resetIgnore": "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé."
+    "resetIgnore": "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé.",
+    "inviteSubject": "{inviter} vous invite dans la cuisine « {kitchen} »",
+    "inviteHeading": "Rejoignez « {kitchen} »",
+    "inviteBody": "{inviter} vous invite à partager vos recettes de famille dans la cuisine « {kitchen} » sur {app}. Créez votre compte, ou connectez-vous si vous en avez un, pour la rejoindre.",
+    "inviteAction": "Accepter l'invitation",
+    "inviteExpiry": "Ce lien ne fonctionne qu'une fois et expire dans {hours} heures.",
+    "inviteIgnore": "Si vous ne connaissez pas {inviter}, ignorez simplement cet e-mail."
   }
 }

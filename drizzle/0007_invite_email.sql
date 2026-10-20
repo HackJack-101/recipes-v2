@@ -1,0 +1,1 @@
+ALTER TABLE "kitchen_invites" ADD COLUMN "email" text;

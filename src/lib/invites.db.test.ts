@@ -55,7 +55,14 @@ describe.skipIf(!url)("invites (database)", async () => {
     expect(stored.some((i) => i.tokenHash === token)).toBe(false);
     expect(expiresAt.getTime() - Date.now()).toBeGreaterThan(23.9 * 3600 * 1000);
     expect(expiresAt.getTime() - Date.now()).toBeLessThanOrEqual(24 * 3600 * 1000);
-    expect(await findInvite(token)).toMatchObject({ kitchenId, inviterName: "Owner" });
+    expect(await findInvite(token)).toMatchObject({ kitchenId, inviterName: "Owner", email: null });
+  });
+
+  it("remembers who an emailed invite was sent to", async () => {
+    const { id, token } = await createInvite(kitchenId, ownerId, "cousin@test.local");
+    expect(await findInvite(token)).toMatchObject({ kitchenId, email: "cousin@test.local" });
+    expect((await pendingInvites(kitchenId)).find((i) => i.id === id)).toMatchObject({ email: "cousin@test.local" });
+    await revokeInvite(kitchenId, id);
   });
 
   it("works exactly once and adds the user as a member", async () => {

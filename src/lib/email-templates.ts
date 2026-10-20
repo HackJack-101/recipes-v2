@@ -49,6 +49,20 @@ ${p(action.url, `font-size:13px;color:${color.muted};word-break:break-all;`)}
 type EmailKey = keyof (typeof import("@/messages/en.json"))["email"];
 type T = (key: EmailKey, values?: Record<string, string | number>) => string;
 
+export function inviteEmail(
+  t: T,
+  { url, inviter, kitchen, appName, hours }: { url: string; inviter: string; kitchen: string; appName: string; hours: number },
+) {
+  return renderEmail({
+    subject: t("inviteSubject", { inviter, kitchen }),
+    heading: t("inviteHeading", { kitchen }),
+    paragraphs: [t("inviteBody", { inviter, kitchen, app: appName })],
+    action: { label: t("inviteAction"), url },
+    notes: [t("inviteExpiry", { hours }), t("inviteIgnore", { inviter })],
+    footer: t("footer", { app: appName }),
+  });
+}
+
 export function passwordResetEmail(t: T, { url, email, appName, minutes }: { url: string; email: string; appName: string; minutes: number }) {
   return renderEmail({
     subject: t("resetSubject", { app: appName }),
