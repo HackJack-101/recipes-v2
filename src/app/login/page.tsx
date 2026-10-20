@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth";
+import { emailEnabled } from "@/lib/email";
 import { safeNext } from "@/lib/utils";
 import { Logo } from "@/components/layout/logo";
 import { LoginForm } from "./login-form";
@@ -22,7 +23,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </div>
         <div className="rounded-2xl border bg-card p-6 shadow-sm">
           <h1 className="mb-5 text-2xl font-semibold">{t("auth.signIn")}</h1>
-          <LoginForm next={next} />
+          <LoginForm next={next} canReset={emailEnabled()} />
         </div>
         <p className="mt-6 text-center text-sm text-muted-foreground">{t("auth.inviteOnly")}</p>
       </div>

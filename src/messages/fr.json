@@ -9,7 +9,24 @@
     "email": "E-mail",
     "password": "Mot de passe",
     "invalidCredentials": "E-mail ou mot de passe incorrect.",
-    "inviteOnly": "Les comptes sont créés par votre administrateur."
+    "inviteOnly": "Les comptes sont créés par votre administrateur.",
+    "forgotPassword": "Mot de passe oublié ?",
+    "forgotTitle": "Réinitialiser le mot de passe",
+    "forgotDescription": "Saisissez l'e-mail de votre compte : nous vous enverrons un lien pour choisir un nouveau mot de passe.",
+    "sendResetLink": "Envoyer le lien",
+    "sending": "Envoi…",
+    "forgotSent": "Si un compte existe pour {email}, un lien pour réinitialiser son mot de passe vient de partir. Vérifiez votre boîte de réception (et les spams).",
+    "backToSignIn": "Retour à la connexion",
+    "invalidEmail": "Saisissez une adresse e-mail valide.",
+    "resetTitle": "Choisir un nouveau mot de passe",
+    "resetFor": "Pour {email}",
+    "newPassword": "Nouveau mot de passe",
+    "passwordHint": "Au moins 8 caractères.",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères.",
+    "savePassword": "Enregistrer et se connecter",
+    "resetInvalidTitle": "Lien expiré",
+    "resetInvalid": "Ce lien a déjà été utilisé ou a expiré. Vous pouvez en demander un nouveau.",
+    "requestNewLink": "Recevoir un nouveau lien"
   },
   "menu": {
     "open": "Ouvrir le menu",
@@ -240,5 +257,14 @@
     "passwordTooShort": "Le mot de passe doit faire au moins 8 caractères.",
     "invalidAccount": "Indiquez votre nom et un e-mail valide.",
     "emailTaken": "Un compte utilise déjà cet e-mail. Connectez-vous, puis rouvrez le lien."
+  },
+  "email": {
+    "footer": "Envoyé par {app}.",
+    "resetSubject": "Réinitialisez votre mot de passe {app}",
+    "resetHeading": "Réinitialisez votre mot de passe",
+    "resetBody": "Quelqu'un, vous on l'espère, a demandé à réinitialiser le mot de passe du compte {email}.",
+    "resetAction": "Choisir un nouveau mot de passe",
+    "resetExpiry": "Ce lien ne fonctionne qu'une fois et expire dans {minutes} minutes.",
+    "resetIgnore": "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé."
   }
 }

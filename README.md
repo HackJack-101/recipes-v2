@@ -27,9 +27,31 @@ Database migrations run automatically when the container starts. Data lives in t
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` | First super admin, created only if no user exists. |
 | `ANTHROPIC_API_KEY` | Enables AI import. Without it the import button is hidden. |
 | `ANTHROPIC_MODEL` | Claude model used for import (default `claude-opus-5-5`). |
+| `SMTP_HOST` / `SMTP_PORT` | Mail server for password reset emails (see [Email](#email)). Without `SMTP_HOST`, the "Forgot password?" link is hidden. Port defaults to `465`. |
+| `SMTP_USER` / `SMTP_PASSWORD` | SMTP login, if the server requires one. |
+| `SMTP_FROM` | Sender, e.g. `Recettes <recettes@example.com>` (defaults to `SMTP_USER`). |
+| `SMTP_SECURE` | `true` for TLS from the start, `false` for STARTTLS. Defaults to `true` on port 465 only. |
 | `TIME_ZONE` | Time zone for dates shown in the app, e.g. when a recipe was last made (default `Europe/Paris`). |
 | `RECIPES_VERSION` | Image tag to run (default `latest`). |
 | `PORT` | Host port (default `3000`). |
+
+### Email
+
+With SMTP configured, the sign-in page offers **Forgot password?**: the account receives a link, valid once for one hour, to choose a new password, which signs it out of its other devices. The form answers the same whether or not an account exists, and sends at most one email every two minutes per account. Emails use the account's language and link to `APP_URL`.
+
+For an OVH mailbox (MX Plan; for Email Pro or Exchange, use the SMTP server shown in the OVH control panel, usually with `SMTP_PORT=587`):
+
+```env
+SMTP_HOST=ssl0.ovh.net
+SMTP_PORT=465
+SMTP_USER=recettes@example.com
+SMTP_PASSWORD=the-mailbox-password
+SMTP_FROM="Recettes <recettes@example.com>"
+```
+
+`SMTP_USER` is the full mailbox address. Keep `SMTP_FROM` on that same address: OVH refuses to send as another one.
+
+Sending errors are logged by the app container (`[email] …`) and never shown to visitors.
 
 Put the app behind a reverse proxy with HTTPS (Caddy, Traefik, nginx…) for anything beyond your local network.
 

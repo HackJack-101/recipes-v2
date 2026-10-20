@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { linkIn, waitForMail } from "./mail";
 
 // Needs a running database seeded with the super admin from ADMIN_EMAIL / ADMIN_PASSWORD.
 const email = process.env.ADMIN_EMAIL ?? "admin@example.com";
@@ -6,7 +7,7 @@ const password = process.env.ADMIN_PASSWORD ?? "admin1234";
 
 test.use({ locale: "en-US" });
 
-test("sign in, create a kitchen and a recipe, scale and share it", async ({ page, browser }, info) => {
+test("sign in, create a kitchen and a recipe, scale and share it", async ({ page, browser, request }, info) => {
   const suffix = `${info.project.name}-${Date.now()}`;
 
   await page.goto("/");
@@ -138,6 +139,34 @@ test("sign in, create a kitchen and a recipe, scale and share it", async ({ page
   await expect(newcomerPage).toHaveURL(kitchenUrl);
   await expect(newcomerPage.getByText(`Pancakes ${suffix}`)).toBeVisible();
   await newcomer.close();
+
+  // Forgot password: the newcomer gets an email, sets a new password and is signed in.
+  const forgetful = await browser.newContext();
+  const forgetfulPage = await forgetful.newPage();
+  const newcomerEmail = `newcomer-${suffix}@test.local`;
+  await forgetfulPage.goto("/login");
+  await forgetfulPage.getByRole("link", { name: "Forgot password?" }).click();
+  await expect(forgetfulPage).toHaveURL(/\/forgot-password$/);
+  await forgetfulPage.getByLabel("Email").fill(newcomerEmail);
+  await forgetfulPage.getByRole("button", { name: "Send the link" }).click();
+  await expect(forgetfulPage.getByRole("status")).toContainText(newcomerEmail);
+  const resetMail = await waitForMail(request, newcomerEmail, /Reset your .* password/);
+  expect(resetMail.from).toContain("recettes@test.local");
+  const resetPath = linkIn(resetMail, /^\/reset-password\//);
+  await forgetfulPage.goto(resetPath);
+  await forgetfulPage.getByLabel("New password").fill("brand-new-pass");
+  await forgetfulPage.getByRole("button", { name: "Save and sign in" }).click();
+  await expect(forgetfulPage).toHaveURL(kitchenUrl); // signed in, straight to their only kitchen
+  // The link works once; the new password works.
+  await forgetfulPage.goto(resetPath);
+  await expect(forgetfulPage.getByRole("heading", { name: "Link no longer valid" })).toBeVisible();
+  await forgetful.clearCookies();
+  await forgetfulPage.goto("/login");
+  await forgetfulPage.getByLabel("Email").fill(newcomerEmail);
+  await forgetfulPage.getByLabel("Password").fill("brand-new-pass");
+  await forgetfulPage.getByRole("button", { name: "Sign in" }).click();
+  await expect(forgetfulPage).toHaveURL(kitchenUrl); // signed in, straight to their only kitchen
+  await forgetful.close();
 
   const late = await browser.newContext();
   const latePage = await late.newPage();

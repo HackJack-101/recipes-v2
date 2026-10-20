@@ -9,7 +9,24 @@
     "email": "Email",
     "password": "Password",
     "invalidCredentials": "Wrong email or password.",
-    "inviteOnly": "Accounts are created by your administrator."
+    "inviteOnly": "Accounts are created by your administrator.",
+    "forgotPassword": "Forgot password?",
+    "forgotTitle": "Reset your password",
+    "forgotDescription": "Enter the email of your account and we'll send you a link to choose a new password.",
+    "sendResetLink": "Send the link",
+    "sending": "Sending…",
+    "forgotSent": "If an account exists for {email}, a link to reset its password is on its way. Check your inbox (and spam folder).",
+    "backToSignIn": "Back to sign in",
+    "invalidEmail": "Enter a valid email address.",
+    "resetTitle": "Choose a new password",
+    "resetFor": "For {email}",
+    "newPassword": "New password",
+    "passwordHint": "At least 8 characters.",
+    "passwordTooShort": "Your password needs at least 8 characters.",
+    "savePassword": "Save and sign in",
+    "resetInvalidTitle": "Link no longer valid",
+    "resetInvalid": "This link was already used or has expired. You can ask for a new one.",
+    "requestNewLink": "Get a new link"
   },
   "menu": {
     "open": "Open menu",
@@ -240,5 +257,14 @@
     "passwordTooShort": "The password needs at least 8 characters.",
     "invalidAccount": "Please enter your name and a valid email.",
     "emailTaken": "An account already uses this email. Sign in, then open the link again."
+  },
+  "email": {
+    "footer": "Sent by {app}.",
+    "resetSubject": "Reset your {app} password",
+    "resetHeading": "Reset your password",
+    "resetBody": "Someone, hopefully you, asked to reset the password of the account {email}.",
+    "resetAction": "Choose a new password",
+    "resetExpiry": "This link works once and expires in {minutes} minutes.",
+    "resetIgnore": "If you didn't ask for it, ignore this email: your password stays the same."
   }
 }

@@ -1,12 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { useTranslations } from "next-intl";
 import { login } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
-export function LoginForm({ next }: { next: string }) {
+/** `canReset` shows the "forgot password" link (only when emails can be sent). */
+export function LoginForm({ next, canReset }: { next: string; canReset: boolean }) {
   const t = useTranslations("auth");
   const [state, action, pending] = useActionState(login, undefined);
   return (
@@ -17,7 +19,14 @@ export function LoginForm({ next }: { next: string }) {
         <Input id="email" name="email" type="email" autoComplete="username" required autoFocus />
       </div>
       <div>
-        <Label htmlFor="password">{t("password")}</Label>
+        <div className="flex items-baseline justify-between gap-2">
+          <Label htmlFor="password">{t("password")}</Label>
+          {canReset && (
+            <Link href="/forgot-password" className="mb-1.5 text-sm text-primary hover:underline">
+              {t("forgotPassword")}
+            </Link>
+          )}
+        </div>
         <Input id="password" name="password" type="password" autoComplete="current-password" required />
       </div>
       {state?.error && (
