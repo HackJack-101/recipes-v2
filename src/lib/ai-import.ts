@@ -4,7 +4,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import * as cheerio from "cheerio";
 import { z } from "zod";
 import { recipeInput, type RecipeInput } from "./recipe-input";
-import { slugify } from "./tags";
+import { canonicalTags } from "./tags";
 
 const MAX_SOURCE_CHARS = 120_000;
 
@@ -37,7 +37,7 @@ Rules:
 - quantity is a number (convert fractions like "1 1/2" or "½" to 1.5); unit is the measure as written ("g", "ml", "tbsp", "cup", "pinch"...), or "" when the ingredient is counted ("3 eggs" → quantity 3, unit "", name "eggs").
 - Split the method into clear, ordered steps without numbering prefixes.
 - description is one or two sentences from the source introducing the dish, or "".
-- Suggest 1 to 5 short tags (dish type, main ingredient, cuisine, diet), written lowercase without accents and with dashes instead of spaces (e.g. "plat-principal"). Prefer tags from the kitchen's existing list when they fit.
+- Suggest 1 to 5 short tags (dish type, main ingredient, cuisine, diet). Reuse tags from the kitchen's existing list, exactly as written, when they fit. Write new ones naturally in the recipe's language, with accents and spaces as needed (e.g. "Plat principal").
 - If the source has no recipe, set found to false and leave the other fields empty.`;
 
 /** Reduces an HTML page to the text that matters, keeping JSON-LD recipe data when present. */
@@ -109,7 +109,7 @@ export async function extractRecipe(source: ImportSource, existingTags: string[]
     servings: positiveOrNull(out.servings),
     prepMinutes: positiveOrNull(out.prepMinutes),
     cookMinutes: positiveOrNull(out.cookMinutes),
-    tags: [...new Set(out.tags.map(slugify).filter(Boolean))].slice(0, 10),
+    tags: canonicalTags(out.tags, existingTags).slice(0, 10),
     ingredients: out.ingredients
       .filter((i) => i.name.trim())
       .map((i) => ({ quantity: i.quantity && i.quantity > 0 ? i.quantity : null, unit: i.unit.slice(0, 40), name: i.name.slice(0, 200) })),

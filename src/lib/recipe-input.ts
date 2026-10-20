@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { slugify } from "./tags";
+import { canonicalTags } from "./tags";
 
 const optionalInt = z.number().int().min(0).max(100000).nullable();
 
@@ -16,9 +16,9 @@ export const recipeInput = z.object({
   prepMinutes: optionalInt,
   cookMinutes: optionalInt,
   tags: z
-    .array(z.string().max(200).transform(slugify))
+    .array(z.string().max(200))
     .max(30)
-    .transform((tags) => [...new Set(tags.filter(Boolean))]),
+    .transform((tags) => canonicalTags(tags)),
   ingredients: z.array(ingredientInput).max(200),
   steps: z.array(z.string().trim().min(1).max(5000)).max(100),
 });

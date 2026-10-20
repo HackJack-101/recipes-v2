@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { emptyRecipe, recipeInput } from "./recipe-input";
-import { slugify, suggestTags } from "./tags";
+import { canonicalTags, slugify, suggestTags, tagSlug } from "./tags";
 
 const tags = [
   { name: "dessert", count: 9 },
@@ -19,10 +19,10 @@ it("suggests tags starting with the text first, ignoring case and accents", () =
   expect(suggestTags(tags, "zzz")).toEqual([]);
 });
 
-it("suggests dashed tags from text typed with spaces", () => {
-  const dashed = [{ name: "plat-principal", count: 2 }, { name: "plat-du-jour", count: 1 }];
-  expect(suggestTags(dashed, "plat p").map((t) => t.name)).toEqual(["plat-principal"]);
-  expect(suggestTags(dashed, "PLAT ").map((t) => t.name)).toEqual(["plat-principal", "plat-du-jour"]);
+it("suggests tags with spaces or dashes alike", () => {
+  const spaced = [{ name: "Plat principal" }, { name: "plat du jour" }];
+  expect(suggestTags(spaced, "plat-p").map((t) => t.name)).toEqual(["Plat principal"]);
+  expect(suggestTags(spaced, "PLAT ").map((t) => t.name)).toEqual(["Plat principal", "plat du jour"]);
 });
 
 it("slugifies tags", () => {
@@ -33,9 +33,16 @@ it("slugifies tags", () => {
   expect(slugify("Noël 2025")).toBe("noel-2025");
   expect(slugify("¡!")).toBe("");
   expect(slugify(`${"a".repeat(39)} b`)).toBe("a".repeat(39));
+  expect(tagSlug("Cuisine  du Monde")).toBe("cuisine-du-monde");
+  expect(tagSlug(" 日本 料理 ")).toBe("日本 料理");
 });
 
-it("stores recipe tags as unique slugs", () => {
-  const { tags } = recipeInput.parse({ ...emptyRecipe(), title: "Tarte", tags: ["Végétarien", "vegetarien", "Plat principal", "!!"] });
-  expect(tags).toEqual(["vegetarien", "plat-principal"]);
+it("keeps tags as written, once per slug, reusing existing spellings", () => {
+  expect(canonicalTags(["  Plat   principal ", "plat-principal", "Végé", "", "VEGE"])).toEqual(["Plat principal", "Végé"]);
+  expect(canonicalTags(["plat principal", "Apéro !"], ["Plat principal", "dessert"])).toEqual(["Plat principal", "Apéro !"]);
+});
+
+it("validates recipe tags as unique display names", () => {
+  const { tags } = recipeInput.parse({ ...emptyRecipe(), title: "Tarte", tags: ["Végétarien", "vegetarien", " Plat  principal", "  "] });
+  expect(tags).toEqual(["Végétarien", "Plat principal"]);
 });

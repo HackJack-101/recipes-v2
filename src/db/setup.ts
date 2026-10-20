@@ -1,8 +1,8 @@
 import path from "node:path";
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { hashPassword } from "@/lib/password";
-import { slugify } from "@/lib/tags";
+import { tagSlug } from "@/lib/tags";
 import { db } from "./index";
 import { recipeTags, tags, users } from "./schema";
 
@@ -25,7 +25,7 @@ export async function setupDatabase() {
 
 async function migrateAndSeed() {
   await migrate(db, { migrationsFolder: path.join(/* turbopackIgnore: true */ process.cwd(), "drizzle") });
-  await slugifyTags();
+  await fillTagSlugs();
 
   const [{ value }] = await db.select({ value: count() }).from(users);
   if (value > 0) return;
@@ -46,21 +46,22 @@ async function migrateAndSeed() {
 }
 
 /**
- * Rewrites tags saved before they were slugs ("Végétarien" → "vegetarien"),
- * merging those that end up with the same slug in a kitchen. Does nothing once done.
+ * Gives a slug to tags created before slugs existed, merging those that share one in a kitchen
+ * ("Végétarien" and "végétarien"): the first keeps its name and gets the other's recipes.
+ * Does nothing once done.
  */
-export async function slugifyTags() {
-  const stale = (await db.select().from(tags)).filter((t) => slugify(t.name) && slugify(t.name) !== t.name);
-  if (!stale.length) return;
+export async function fillTagSlugs() {
+  const pending = await db.select().from(tags).where(isNull(tags.slug)).orderBy(tags.name);
+  if (!pending.length) return;
   await db.transaction(async (tx) => {
-    for (const tag of stale) {
-      const name = slugify(tag.name);
+    for (const tag of pending) {
+      const slug = tagSlug(tag.name);
       const [target] = await tx
         .select({ id: tags.id })
         .from(tags)
-        .where(and(eq(tags.kitchenId, tag.kitchenId), eq(tags.name, name)));
+        .where(and(eq(tags.kitchenId, tag.kitchenId), eq(tags.slug, slug)));
       if (!target) {
-        await tx.update(tags).set({ name }).where(eq(tags.id, tag.id));
+        await tx.update(tags).set({ slug }).where(eq(tags.id, tag.id));
         continue;
       }
       await tx.execute(sql`
@@ -70,5 +71,5 @@ export async function slugifyTags() {
       await tx.delete(tags).where(eq(tags.id, tag.id));
     }
   });
-  console.log(`[setup] Converted ${stale.length} tag(s) to slugs`);
+  console.log(`[setup] Added slugs to ${pending.length} tag(s)`);
 }

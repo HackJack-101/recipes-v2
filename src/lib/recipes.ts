@@ -3,7 +3,7 @@ import { and, asc, count, desc, eq, exists, ilike, inArray, or, sql } from "driz
 import { db, type Tx } from "@/db";
 import { favorites, ingredients, photos, recipes, recipeTags, steps, tags } from "@/db/schema";
 import type { RecipeInput } from "./recipe-input";
-import { slugify } from "./tags";
+import { canonicalTags, tagSlug } from "./tags";
 
 export type FullRecipe = NonNullable<Awaited<ReturnType<typeof loadRecipe>>>;
 
@@ -76,17 +76,18 @@ export async function saveRecipe(kitchenId: string, input: RecipeInput, userId: 
   });
 }
 
+/** Ids of the kitchen's tags with these names, creating missing ones. An existing tag keeps its spelling. */
 async function ensureTags(tx: Tx, kitchenId: string, names: string[]) {
-  const unique = [...new Set(names.map(slugify).filter(Boolean))];
+  const unique = canonicalTags(names);
   if (!unique.length) return [];
   await tx
     .insert(tags)
-    .values(unique.map((name) => ({ kitchenId, name })))
+    .values(unique.map((name) => ({ kitchenId, name, slug: tagSlug(name) })))
     .onConflictDoNothing();
   const rows = await tx
     .select({ id: tags.id })
     .from(tags)
-    .where(and(eq(tags.kitchenId, kitchenId), inArray(tags.name, unique)));
+    .where(and(eq(tags.kitchenId, kitchenId), inArray(tags.slug, unique.map(tagSlug))));
   return rows.map((r) => r.id);
 }
 
@@ -110,7 +111,7 @@ export async function kitchenTags(kitchenId: string) {
 export async function kitchenTagCounts(kitchenId: string) {
   const uses = count(recipeTags.recipeId);
   return db
-    .select({ name: tags.name, count: uses })
+    .select({ name: tags.name, slug: sql<string>`${tags.slug}`, count: uses })
     .from(tags)
     .innerJoin(recipeTags, eq(recipeTags.tagId, tags.id))
     .where(eq(tags.kitchenId, kitchenId))
@@ -159,8 +160,8 @@ export async function searchRecipes(
   const q = query.trim();
   if (q) {
     const pattern = `%${escapeLike(q)}%`;
-    // Tags are slugs: "plat princ" finds "plat-principal", "végé" finds "vegetarien".
-    const tagPattern = `%${escapeLike(slugify(q) || q)}%`;
+    // Through slugs, "plat-princ" finds "Plat principal" and "vege" finds "Végétarien".
+    const slugPattern = `%${escapeLike(tagSlug(q))}%`;
     conditions.push(
       or(
         ilike(recipes.title, pattern),
@@ -170,7 +171,9 @@ export async function searchRecipes(
             .select({ one: sql`1` })
             .from(recipeTags)
             .innerJoin(tags, eq(tags.id, recipeTags.tagId))
-            .where(and(eq(recipeTags.recipeId, recipes.id), ilike(tags.name, tagPattern))),
+            .where(
+              and(eq(recipeTags.recipeId, recipes.id), or(ilike(tags.name, pattern), ilike(tags.slug, slugPattern))),
+            ),
         ),
       )!,
     );
@@ -182,7 +185,7 @@ export async function searchRecipes(
           .select({ one: sql`1` })
           .from(recipeTags)
           .innerJoin(tags, eq(tags.id, recipeTags.tagId))
-          .where(and(eq(recipeTags.recipeId, recipes.id), eq(tags.name, slugify(tag)))),
+          .where(and(eq(recipeTags.recipeId, recipes.id), eq(tags.slug, tagSlug(tag)))),
       ),
     );
   }

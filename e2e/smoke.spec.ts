@@ -70,10 +70,17 @@ test("sign in, create a kitchen and a recipe, scale and share it", async ({ page
   await expect(page.getByRole("button", { name: "Remove tag breakfast" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Remove tag brea", exact: true })).toHaveCount(0);
   await expect(page.locator("#tag-input")).toHaveValue("");
-  // Typed tags become slugs.
+  // Tags keep their spelling; the same tag typed differently isn't added twice.
   await page.locator("#tag-input").fill("Petit Déjeuner");
   await page.locator("#tag-input").press("Enter");
-  await expect(page.getByRole("button", { name: "Remove tag petit-dejeuner" })).toBeVisible();
+  await page.locator("#tag-input").fill("petit-dejeuner");
+  await page.locator("#tag-input").press("Enter");
+  await expect(page.getByRole("button", { name: /^Remove tag / })).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Remove tag Petit Déjeuner" })).toBeVisible();
+  await page.getByRole("button", { name: "Save recipe" }).click();
+  await page.getByRole("link", { name: "Petit Déjeuner", exact: true }).click();
+  await expect(page).toHaveURL(/\?tag=petit-dejeuner$/);
+  await expect(page.getByRole("button", { name: /Petit Déjeuner/ })).toHaveAttribute("aria-pressed", "true");
   await page.goto(recipeUrl);
 
   // Public link works without an account.

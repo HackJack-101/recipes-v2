@@ -145,9 +145,15 @@ export const tags = pgTable(
     kitchenId: uuid("kitchen_id")
       .notNull()
       .references(() => kitchens.id, { onDelete: "cascade" }),
+    /** As written, with accents and spaces ("Plat principal"). */
     name: text("name").notNull(),
+    /**
+     * `tagSlug(name)` ("plat-principal"): identifies the tag in a kitchen and in URLs.
+     * Always set by the app; null only for tags created before slugs, until setup fills them in.
+     */
+    slug: text("slug"),
   },
-  (t) => [uniqueIndex("tags_kitchen_name_idx").on(t.kitchenId, t.name)],
+  (t) => [uniqueIndex("tags_kitchen_slug_idx").on(t.kitchenId, t.slug)],
 );
 
 export const recipeTags = pgTable(
