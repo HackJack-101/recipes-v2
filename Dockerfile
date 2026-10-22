@@ -27,6 +27,7 @@ RUN addgroup -S -g 1001 app && adduser -S -u 1001 -G app app \
     && mkdir -p /data/uploads && chown -R app:app /data
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
+COPY --from=build --chown=app:app /app/public ./public
 COPY --from=build --chown=app:app /app/drizzle ./drizzle
 # Set by CI: the release version (or branch) and commit, shown in the app.
 ARG APP_VERSION=dev
