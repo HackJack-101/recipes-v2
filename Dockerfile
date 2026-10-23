@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1.7
-# Pinned to a patched release (CA certificate fix); bump deliberately.
-ARG NODE_VERSION=24.22.1-alpine
+ARG NODE_VERSION=24-alpine
+# Oldest Node allowed: 24.22.1 ships NSS 3.131.1, the fix for CVE-2026-111943.
+# The floating tag above still picks up newer releases; this only sets a floor.
+ARG NODE_MIN_VERSION=24.22.1
 
 FROM node:${NODE_VERSION} AS base
 RUN corepack enable
@@ -18,6 +20,11 @@ COPY . .
 RUN pnpm build
 
 FROM node:${NODE_VERSION} AS runner
+ARG NODE_MIN_VERSION
+RUN node -e 'const [a, b] = [process.versions.node, process.argv[1]].map((v) => v.split(".").map(Number)); \
+  const older = a.findIndex((n, i) => n !== b[i]); \
+  if (older !== -1 && a[older] < b[older]) { console.error(`Node ${process.versions.node} is older than ${process.argv[1]}`); process.exit(1); }' \
+  "$NODE_MIN_VERSION"
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
