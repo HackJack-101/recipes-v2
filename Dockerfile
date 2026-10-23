@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1.7
-ARG NODE_VERSION=24-alpine
+# Pinned to a patched release (CA certificate fix); bump deliberately.
+ARG NODE_VERSION=24.22.1-alpine
 
 FROM node:${NODE_VERSION} AS base
 RUN corepack enable
