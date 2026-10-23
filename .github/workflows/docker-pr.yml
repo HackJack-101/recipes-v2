@@ -1,0 +1,33 @@
+name: Docker build check
+
+# Pull requests that change the Dockerfile: build the image to catch errors
+# before merging. The image is never pushed: main and releases publish it.
+on:
+  pull_request:
+    paths: ["Dockerfile"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          build-args: |
+            APP_VERSION=pr-${{ github.event.pull_request.number }}
+            APP_COMMIT=${{ github.event.pull_request.head.sha }}
+          cache-from: type=gha

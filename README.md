@@ -93,6 +93,7 @@ e2e/              Playwright tests
 | Event | Workflow | Runs |
 | --- | --- | --- |
 | Pull request | `ci.yml` | Lint, typecheck, unit and database tests (PostgreSQL service), production build, Playwright. Required to merge. |
+| Pull request changing the `Dockerfile` | `docker-pr.yml` | A multi-arch (amd64/arm64) Docker build, to catch errors before merging. The image is not pushed. |
 | Push to `main` | `ci.yml` | The same tests, then a multi-arch (amd64/arm64) image pushed to GHCR as `latest` and `sha-<commit>`. Docs-only changes skip it. |
 | Published release (tag `v1.2.0`) | `release.yml` | Image tagged `1.2.0`, `1.2`, `stable` and `sha-<commit>`, then the Portainer deploy. No tests: the commit passed them on its pull request. |
 | Published pre-release (`v1.3.0-rc.1`) | `release.yml` | Image tagged `1.3.0-rc.1` and `sha-<commit>` only: no `stable`, no deploy. |
