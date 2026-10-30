@@ -43,6 +43,13 @@
       "when": 1792504202415,
       "tag": "0005_recipe_cooks",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792520481817,
+      "tag": "0006_password_resets",
+      "breakpoints": true
     }
   ]
 }
