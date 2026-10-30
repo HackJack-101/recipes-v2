@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/hackjack-101/recipes-v2:${RECIPES_VERSION:-latest}
+    image: ghcr.io/hackjack-101/recipes-v2:${RECIPES_VERSION:-stable}
     build: .
     restart: unless-stopped
     ports:
