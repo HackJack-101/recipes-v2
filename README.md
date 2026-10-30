@@ -28,7 +28,7 @@ Database migrations run automatically when the container starts. Data lives in t
 | `ANTHROPIC_API_KEY` | Enables AI import. Without it the import button is hidden. |
 | `ANTHROPIC_MODEL` | Claude model used for import (default `claude-opus-5-5`). |
 | `TIME_ZONE` | Time zone for dates shown in the app, e.g. when a recipe was last made (default `Europe/Paris`). |
-| `RECIPES_VERSION` | Image tag to run (default `latest`). |
+| `RECIPES_VERSION` | Image tag to run (default `stable`, the latest release). |
 | `PORT` | Host port (default `3000`). |
 
 Put the app behind a reverse proxy with HTTPS (Caddy, Traefik, nginx…) for anything beyond your local network.
@@ -52,7 +52,7 @@ The same `docker-compose.yml` runs as a Portainer stack.
    Any variable from the table above can be added here. `POSTGRES_PASSWORD` is required; the deploy fails without it.
 4. Click **Deploy the stack**, wait for the `db` service to become healthy, then open `APP_URL` and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
-To update, open the stack and click **Pull and redeploy** (Repository) or **Update the stack** with **Re-pull image and redeploy** enabled (Web editor). Pin a release instead of `latest` by setting `RECIPES_VERSION` (for example `1.2.0`), or follow releases with `stable`. To redeploy automatically on each release, see [Deploying releases to Portainer](#deploying-releases-to-portainer). The `recipes_pgdata` and `recipes_uploads` volumes are kept across updates; back them up from **Volumes**.
+To update, open the stack and click **Pull and redeploy** (Repository) or **Update the stack** with **Re-pull image and redeploy** enabled (Web editor). The stack follows releases (`stable`); pin one by setting `RECIPES_VERSION` (for example `1.2.0`). To redeploy automatically on each release, see [Deploying releases to Portainer](#deploying-releases-to-portainer). The `recipes_pgdata` and `recipes_uploads` volumes are kept across updates; back them up from **Volumes**.
 
 If Portainer's stack sits on a shared network with a reverse proxy (Traefik, Nginx Proxy Manager…), point the proxy at the `app` service on port `3000`, and set `APP_URL` to the public HTTPS address so share links and secure cookies work.
 
@@ -92,10 +92,10 @@ e2e/              Playwright tests
 
 | Event | Workflow | Runs |
 | --- | --- | --- |
-| Pull request | `ci.yml` | Lint, typecheck, unit and database tests (PostgreSQL service), production build, Playwright. Required to merge. |
-| Pull request changing the `Dockerfile` | `docker-pr.yml` | A multi-arch (amd64/arm64) Docker build, to catch errors before merging. The image is not pushed. |
-| Push to `main` | `ci.yml` | The same tests, then a multi-arch (amd64/arm64) image pushed to GHCR as `latest` and `sha-<commit>`. Docs-only changes skip it. |
-| Published release (tag `v1.2.0`) | `release.yml` | Image tagged `1.2.0`, `1.2`, `stable` and `sha-<commit>`, then the Portainer deploy. No tests: the commit passed them on its pull request. |
+| Pull request | `ci.yml` | Lint, typecheck, unit and database tests (PostgreSQL service), production build, Playwright. Docs-only changes skip it. |
+| Pull request changing the `Dockerfile` | `docker-pr.yml` | An amd64 Docker build (the servers' architecture), to catch errors before merging. The image is not pushed. |
+| Push to `main` | `ci.yml` | The same tests, no image: images are built for releases only. Docs-only changes skip it. |
+| Published release (tag `v1.2.0`) | `release.yml` | amd64 image tagged `1.2.0`, `1.2`, `stable` and `sha-<commit>`, then the Portainer deploy. No tests: the commit passed them on its pull request. |
 | Published pre-release (`v1.3.0-rc.1`) | `release.yml` | Image tagged `1.3.0-rc.1` and `sha-<commit>` only: no `stable`, no deploy. |
 
 Release tags must be semver (`v1.2.0` or `1.2.0`). Pushing a tag alone builds nothing; publish a release from it.
